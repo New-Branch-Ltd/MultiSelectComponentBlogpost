@@ -16,13 +16,17 @@ We are going to create a multi-range selector. [IMAGE]
 ## Implementation
 
 #### Setup
-Let's start by setting up a container, state and some constants to mark minimum
-and maximum of selectible numbers.
+Let's start by setting up some constants to be used later.
+```tsx
+  export const CONTAINER_WIDTH = 800;
+  export const HANDLE_WIDTH = 20;
+  export const INTERVAL_MIN = 0;
+  export const INTERVAL_MAX = 1000;
+```
+
+Then let's set up a container and state.
 
 ```tsx
-const MIN = 0;
-const MAX = 1000;
-
 interface IntervalType {
   min: number;
   max: number;
@@ -35,7 +39,7 @@ function App() {
     <div className="App">
       <h1>Multi-Interval Selector</h1>
 
-      <div className="container">
+      <div className="container" style={{width: `${CONTAINER_WIDTH}px`}}>
         {intervals.map(i => <Interval min={i.min} max={i.max} />)}
       </div>
     </div>
@@ -66,14 +70,11 @@ and some basic styles to start with:
 ```css
   .container {
     display: flex;
-    justify-content: space-between;
-    width: 800px;
     height: 200px;
     background: rgba(0,100,255,0.3);
   }
 
   .left-handle, .right-handle {
-    width: 40px;
     height: 100%;
     background: rgba(0,100,255,0.8);
   }
@@ -84,13 +85,54 @@ and some basic styles to start with:
   }
 ```
 
-#### Hooking Min and Max
+#### Transforming values
+Now lets set up a utility function to transform value from the interval to 
+pixel position in the container. It will look something like that.
 
-Out first job will be to hook min and max props of the `Interval.tsx` component to the positions of the handles.
+```ts
+  export function intervalValueToContainerPosition(intervalValue: number) {
+    return (intervalValue * CONTAINER_WIDTH) / INTERVAL_MAX;
+  }
+```
+
+We can then use it in `Interval.tsx` like so:
+
+```tsx
+  function Interval({ min, max }: Props) {
+    const pixelsLeft = intervalValueToContainerPosition(min);
+    const pixelsRight = intervalValueToContainerPosition(max);
+    
+    return (
+      <>
+        <div
+          style={{
+            position: "absolute",
+            left: `${pixelsLeft}px`,
+            width: `${HANDLE_WIDTH}px`
+          }}
+          className="left-handle"
+        />
+        <div
+          style={{
+            position: "absolute",
+            left: `${pixelsRight}px`,
+            width: `${HANDLE_WIDTH}px`
+          }}
+          className="right-handle"
+        />
+      </>
+    );
+  }
+
+  export default Interval;
+```
 
 #### Event Listeners
 
-Our first job will be to make the handles functionable. That will include 
+Our next job will be to hook event listeners on the handles.
+
+TODO Expain evnet handlers with code. Actually translate the handles based on the mouse events.
+
 
 - Event listeners
 - Create functionaity
