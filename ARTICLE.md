@@ -40,7 +40,7 @@ function App() {
       <h1>Multi-Interval Selector</h1>
 
       <div className="container" style={{width: `${CONTAINER_WIDTH}px`}}>
-        {intervals.map(i => <Interval min={i.min} max={i.max} />)}
+        {intervals.map((i, ind) => <Interval key={ind} i={i} />)}
       </div>
     </div>
   );
@@ -98,7 +98,9 @@ pixel position in the container. It will look something like that.
 We can then use it in `Interval.tsx` like so:
 
 ```tsx
-  function Interval({ min, max }: Props) {
+  function Interval({ interval }: Props) {
+    const {min, max} = interval;
+
     const pixelsLeft = intervalValueToContainerPosition(min);
     const pixelsRight = intervalValueToContainerPosition(max);
     
@@ -129,7 +131,117 @@ We can then use it in `Interval.tsx` like so:
 
 #### Event Listeners
 
-Our next job will be to hook event listeners on the handles.
+Our next job will be to hook event listeners on the handles. We can setup the `mousedown` event listener on the handle to update state describing if the handle is moving like so:
+```tsx
+  const [leftMoving, setLeftMoving] = useState(false);
+  const [rightMoving, setRightMoving] = useState(false);
+
+  const pixelsLeft = intervalValueToContainerPosition(min);
+  const pixelsRight = intervalValueToContainerPosition(max);
+
+  useEffect(() => {
+    function stopMoving() {
+      setLeftMoving(false)
+      setRightMoving(false)
+    }
+
+    window.addEventListener('mouseup', stopMoving)
+
+    return () => {
+      window.removeEventListener('mouseup', stopMoving)
+    }
+  }, [])
+
+  function onLeftHandleMouseDown() {
+    setLeftMoving(true)
+  }
+
+  function onRightHandleMouseDown() {
+    setRightMoving(true)
+  }
+```
+
+You will notice that here I also added a `mouseup` event handler on the `window` to clear the state. It is added on the `window` to handle edge case when the handle is dragged away from the container and then the mouse button is released.
+
+Next I will add the `mousemove` event handler on the handle and call `onChange` callback to update the position of the handles.
+
+```tsx
+  const onLeftMouseMove: MouseEventHandler<HTMLDivElement> = (ev) => {
+    if (leftMoving && containerRef.current) {  
+      const containerBox = containerRef.current?.getBoundingClientRect();
+    
+      const mousePos = ev.clientX;
+      const containerMin = containerBox.x;
+
+      const minInPx = mousePos - containerMin - HANDLE_WIDTH / 2;
+      const minInInterval = containerPositionToIntervalValue(minInPx)
+
+      onChange({min: minInInterval, max})
+    }
+  }
+
+  const onRightMouseMove: MouseEventHandler<HTMLDivElement> = (ev) => {
+    if (rightMoving && containerRef.current) {
+      const containerBox = containerRef.current?.getBoundingClientRect();
+    
+      const mousePos = ev.clientX;
+      const containerMin = containerBox.x;
+
+      const maxInPx = mousePos - containerMin - HANDLE_WIDTH / 2;
+      const maxInInterval = containerPositionToIntervalValue(maxInPx)
+
+      onChange({min, max: maxInInterval})
+    }
+  }
+```
+
+You will notice here that I am getting the position of the mouse relative to the container position. I am passing the `containerRef` as a prop. `containerPositionToIntervalValue` is another utility function I have added that looks like that:
+```tsx
+  export function containerPositionToIntervalValue(containerPosition: number) {
+    return (containerPosition * (INTERVAL_MAX - INTERVAL_MIN)) / CONTAINER_WIDTH
+}
+```
+
+The current jsx in the container component look like that:
+
+```tsx
+  <>
+    <div
+      style={{
+        position: "absolute",
+        left: `${pixelsLeft}px`,
+        width: `${HANDLE_WIDTH}px`
+      }}
+      className="left-handle"
+      onMouseDown={onLeftHandleMouseDown}
+      onMouseMove={onLeftMouseMove}
+    />
+    <div
+      style={{
+        position: "absolute",
+        left: `${pixelsRight}px`,
+        width: `${HANDLE_WIDTH}px`
+      }}
+      className="right-handle"
+      onMouseDown={onRightHandleMouseDown}
+      onMouseMove={onRightMouseMove}
+    />
+  </>
+```
+
+And here is the `onChange` handler in the container component.
+
+```tsx
+  function onIntervalChange(interval: IntervalType) {
+    return (newInterval: IntervalType) => {
+      setIntervals(intervals.map(i => i === interval ? newInterval : i))
+    }
+  }
+```
+
+Notice that in this event handler we don't handle collisions between intervals or dragging out of the container box. This will be our next task.
+
+
 
 TODO Expain evnet handlers with code. Actually translate the handles based on the mouse events.
 

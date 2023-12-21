@@ -1,14 +1,15 @@
 import React, { MouseEventHandler, useEffect, useState } from "react";
-import { HANDLE_WIDTH, containerPositionToIntervalValue, intervalValueToContainerPosition } from "./constants";
+import { HANDLE_WIDTH, IntervalType, containerPositionToIntervalValue, intervalValueToContainerPosition } from "./domain";
 
 interface Props {
   containerRef: React.MutableRefObject<HTMLDivElement | null>;
-  onChange: (newMin: number, newMax: number) => void;
-  min: number;
-  max: number;
+  onChange: (newInterval: IntervalType ) => void;
+  interval: IntervalType;
 }
 
-function Interval({ min, max, containerRef, onChange }: Props) {
+function Interval({ interval, containerRef, onChange }: Props) {
+  const {min, max} = interval
+
   const [leftMoving, setLeftMoving] = useState(false);
   const [rightMoving, setRightMoving] = useState(false);
 
@@ -46,7 +47,7 @@ function Interval({ min, max, containerRef, onChange }: Props) {
       const minInPx = mousePos - containerMin - HANDLE_WIDTH / 2;
       const minInInterval = containerPositionToIntervalValue(minInPx)
 
-      onChange(minInInterval, max)
+      onChange({min: minInInterval, max})
     }
   }
 
@@ -60,7 +61,7 @@ function Interval({ min, max, containerRef, onChange }: Props) {
       const maxInPx = mousePos - containerMin - HANDLE_WIDTH / 2;
       const maxInInterval = containerPositionToIntervalValue(maxInPx)
 
-      onChange(min, maxInInterval)
+      onChange({min, max: maxInInterval})
     }
   }
 
