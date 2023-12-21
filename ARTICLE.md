@@ -239,7 +239,28 @@ And here is the `onChange` handler in the container component.
   }
 ```
 
-Notice that in this event handler we don't handle collisions between intervals or dragging out of the container box. This will be our next task.
+Notice that in this event handler we don't handle collisions between intervals or dragging out of the container box. This will be our next task. 
+
+#### Handling Collisions 
+For simplicity we will keep all intervals ordered from left to right in the state.
+Knowing that this code should do the trick in handling interval collisions.
+
+```tsx
+  function onIntervalChange(interval: IntervalType) {
+    return (newInterval: IntervalType) => {
+      const currentIntervalIndex = intervals.findIndex(i => i === interval);
+      const previousInterval = intervals[currentIntervalIndex - 1];
+      const nextInterval = intervals[currentIntervalIndex + 1];
+
+      const newIntervalMin = Math.min(Math.max(newInterval.min, previousInterval?.max ?? INTERVAL_MIN), newInterval.max)
+      const newIntervalMax = Math.max(Math.min(newInterval.max, nextInterval?.min ?? INTERVAL_MAX,), newInterval.min)
+
+      const newIntervalBounded: IntervalType = {min: newIntervalMin, max: newIntervalMax}
+
+      setIntervals(intervals.map((i) => (i === interval ? newIntervalBounded : i)));
+    };
+  }
+```
 
 
 
@@ -247,7 +268,9 @@ TODO Expain evnet handlers with code. Actually translate the handles based on th
 
 
 - Event listeners
-- Create functionaity
+- Collision
+- Background Image
+- Create functionality
 - Remove functionality
 
 

@@ -1,8 +1,6 @@
 .container {
   display: flex;
   height: 200px;
-  /* background: linear-gradient(to right, yellow 50%, rgb(100, 150, 200) 50% 60%, yellow 60% ) */
-  background: rgba(0,100,255,0.3);
   position: relative;
 }
 
