@@ -1,7 +1,7 @@
-import React, { useRef, useState } from "react";
+import React, { MouseEventHandler, useRef, useState } from "react";
 import Interval from "./Interval";
 import "./App.css";
-import { CONTAINER_WIDTH, INTERVAL_MAX, INTERVAL_MIN, IntervalType, getBackgroundImageForIntervals } from "./domain";
+import { CONTAINER_WIDTH, HANDLE_WIDTH, INTERVAL_MAX, INTERVAL_MIN, IntervalType, containerPositionToIntervalValue, getBackgroundImageForIntervals } from "./domain";
 
 function App() {
   const [intervals, setIntervals] = useState<IntervalType[]>([
@@ -25,6 +25,32 @@ function App() {
     };
   }
 
+  function onDelete(interval: IntervalType) {
+    return () => {
+      setIntervals(intervals.filter((i) => i !== interval));
+    };
+  }
+
+  const handleDoubleClick: MouseEventHandler<HTMLDivElement> = (ev) => {
+    if (!containerRef.current) return;
+
+    const containerBox = containerRef.current.getBoundingClientRect();
+
+    const mousePos = ev.clientX;
+    const mousePosInPx = mousePos - containerBox?.x;
+    const mousePosInIntervalValue = containerPositionToIntervalValue(mousePosInPx);
+
+    const isOutsideIntervals = intervals.every(i => mousePosInIntervalValue < i.min - HANDLE_WIDTH || mousePosInIntervalValue > i.max + HANDLE_WIDTH)
+
+    if (isOutsideIntervals) {
+      const newInterval = {min: mousePosInIntervalValue - HANDLE_WIDTH, max: mousePosInIntervalValue + HANDLE_WIDTH}
+      setIntervals([...intervals, newInterval])
+      // TODO SORT
+    }
+  }
+
+
+
   const background = getBackgroundImageForIntervals(intervals);
 
   return (
@@ -35,10 +61,12 @@ function App() {
         ref={containerRef}
         className="container"
         style={{ width: `${CONTAINER_WIDTH}px`, background}}
+        onDoubleClick={handleDoubleClick}
       >
         {intervals.map((i, ind) => (
           <Interval
             onChange={onIntervalChange(i)}
+            onDelete={onDelete(i)}
             key={ind}
             interval={i}
             containerRef={containerRef}

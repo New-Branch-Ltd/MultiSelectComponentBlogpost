@@ -4,10 +4,11 @@ import { HANDLE_WIDTH, IntervalType, containerPositionToIntervalValue, intervalV
 interface Props {
   containerRef: React.MutableRefObject<HTMLDivElement | null>;
   onChange: (newInterval: IntervalType ) => void;
+  onDelete: () => void;
   interval: IntervalType;
 }
 
-function Interval({ interval, containerRef, onChange }: Props) {
+function Interval({ interval, containerRef, onChange, onDelete }: Props) {
   const {min, max} = interval
 
   const [leftMoving, setLeftMoving] = useState(false);
@@ -53,7 +54,7 @@ function Interval({ interval, containerRef, onChange }: Props) {
 
   const onRightMouseMove: MouseEventHandler<HTMLDivElement> = (ev) => {
     if (rightMoving && containerRef.current) {
-      const containerBox = containerRef.current?.getBoundingClientRect();
+      const containerBox = containerRef.current.getBoundingClientRect();
     
       const mousePos = ev.clientX;
       const containerMin = containerBox.x;
@@ -87,6 +88,9 @@ function Interval({ interval, containerRef, onChange }: Props) {
         onMouseDown={onRightHandleMouseDown}
         onMouseMove={onRightMouseMove}
       />
+      <button type="button" style={{position: "absolute", left: `${pixelsRight + 20}px`, top: `-20px`}} onClick={onDelete}>
+        X
+      </button>
     </>
   );
 }

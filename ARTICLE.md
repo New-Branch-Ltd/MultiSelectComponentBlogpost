@@ -265,7 +265,35 @@ Knowing that this code should do the trick in handling interval collisions.
 Depending on further specification you might want to shift the boundings +- `HANDLE_WIDTH`px. 
 
 #### Background Image
+We can color the background of our container using a `linear-gradient` background like so:
 
+```tsx
+  export function getBackgroundImageForIntervals(
+    intervals: IntervalType[]
+  ): string {
+    return (
+      intervals.reduce(
+        (acc, interval) =>
+          acc +
+          `,${UNSELECTED_COLOR} ${intervalValueToContainerPosition(
+            interval.min
+          ) + HANDLE_WIDTH}px, ${SELECTED_COLOR} ${intervalValueToContainerPosition(
+            interval.min
+          )}px ${intervalValueToContainerPosition(
+            interval.max
+          )}px, ${UNSELECTED_COLOR} ${intervalValueToContainerPosition(
+            interval.max
+          )}px`,
+        "linear-gradient(to right "
+      ) + ")"
+    );
+  }
+```
+Here we color the background of the container with `SELECTED_COLOR` for regions that are in intervals and with `UNSELECTED_COLOR` otherwise.
+
+#### Creating Intervals
+
+#### Removing Intervals
 
 
 TODO Expain evnet handlers with code. Actually translate the handles based on the mouse events.
@@ -282,5 +310,5 @@ TODO Expain evnet handlers with code. Actually translate the handles based on th
 When it comes to testing, this kind of components can be tested via unit test. I'd rather recommend testing them via an integration test library like cypress or playwright.
 TODO Examples::
 
-## Summary
+## Summary And Usages
 We created a multi-range selector component that can be used in audio files editor | video editor...
