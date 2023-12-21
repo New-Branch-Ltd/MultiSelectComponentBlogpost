@@ -7,3 +7,7 @@ export const INTERVAL_MAX = 1000;
 export function intervalValueToContainerPosition(intervalValue: number) {
   return (intervalValue * CONTAINER_WIDTH) / INTERVAL_MAX;
 }
+
+export function containerPositionToIntervalValue(containerPosition: number) {
+  return (containerPosition * (INTERVAL_MAX - INTERVAL_MIN)) / CONTAINER_WIDTH
+}

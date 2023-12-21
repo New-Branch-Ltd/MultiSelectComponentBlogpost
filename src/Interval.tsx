@@ -1,17 +1,16 @@
-import React, { MouseEventHandler, useEffect, useRef, useState } from "react";
-import { HANDLE_WIDTH, intervalValueToContainerPosition } from "./constants";
+import React, { MouseEventHandler, useEffect, useState } from "react";
+import { HANDLE_WIDTH, containerPositionToIntervalValue, intervalValueToContainerPosition } from "./constants";
 
 interface Props {
+  containerRef: React.MutableRefObject<HTMLDivElement | null>;
+  onChange: (newMin: number, newMax: number) => void;
   min: number;
   max: number;
 }
 
-function Interval({ min, max }: Props) {
+function Interval({ min, max, containerRef, onChange }: Props) {
   const [leftMoving, setLeftMoving] = useState(false);
   const [rightMoving, setRightMoving] = useState(false);
-
-  const leftHandleRef = useRef<HTMLDivElement>(null);
-  const rightHandleRef = useRef<HTMLDivElement>(null);
 
   const pixelsLeft = intervalValueToContainerPosition(min);
   const pixelsRight = intervalValueToContainerPosition(max);
@@ -38,14 +37,30 @@ function Interval({ min, max }: Props) {
   }
 
   const onLeftMouseMove: MouseEventHandler<HTMLDivElement> = (ev) => {
-    if (leftMoving) {
-      console.log('LEFT MOUSE: ', ev)
+    if (leftMoving && containerRef.current) {  
+      const containerBox = containerRef.current?.getBoundingClientRect();
+    
+      const mousePos = ev.clientX;
+      const containerMin = containerBox.x;
+
+      const minInPx = mousePos - containerMin - HANDLE_WIDTH / 2;
+      const minInInterval = containerPositionToIntervalValue(minInPx)
+
+      onChange(minInInterval, max)
     }
   }
 
   const onRightMouseMove: MouseEventHandler<HTMLDivElement> = (ev) => {
-    if (rightMoving) {
-      console.log('RIGHT MOUSE: ', ev)
+    if (rightMoving && containerRef.current) {
+      const containerBox = containerRef.current?.getBoundingClientRect();
+    
+      const mousePos = ev.clientX;
+      const containerMin = containerBox.x;
+
+      const maxInPx = mousePos - containerMin - HANDLE_WIDTH / 2;
+      const maxInInterval = containerPositionToIntervalValue(maxInPx)
+
+      onChange(min, maxInInterval)
     }
   }
 
