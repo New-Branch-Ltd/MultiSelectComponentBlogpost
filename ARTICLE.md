@@ -262,6 +262,10 @@ Knowing that this code should do the trick in handling interval collisions.
   }
 ```
 
+Depending on further specification you might want to shift the boundings +- `HANDLE_WIDTH`px. 
+
+#### Background Image
+
 
 
 TODO Expain evnet handlers with code. Actually translate the handles based on the mouse events.

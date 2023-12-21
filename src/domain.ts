@@ -2,8 +2,8 @@ export const CONTAINER_WIDTH = 800;
 export const HANDLE_WIDTH = 20;
 export const INTERVAL_MIN = 0;
 export const INTERVAL_MAX = 1000;
-export const SELECTED_COLOR = "red";
-export const UNSELECTED_COLOR = "yellow";
+export const SELECTED_COLOR = "#FFDCA9";
+export const UNSELECTED_COLOR = "#FCF9BE";
 
 export interface IntervalType {
   min: number;
