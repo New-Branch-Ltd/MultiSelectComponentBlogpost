@@ -1,4 +1,5 @@
 import React, { MouseEventHandler, useRef, useState } from "react";
+import sortBy from 'lodash/sortBy'
 import Interval from "./Interval";
 import "./App.css";
 import { CONTAINER_WIDTH, HANDLE_WIDTH, INTERVAL_MAX, INTERVAL_MIN, IntervalType, containerPositionToIntervalValue, getBackgroundImageForIntervals } from "./domain";
@@ -44,12 +45,11 @@ function App() {
 
     if (isOutsideIntervals) {
       const newInterval = {min: mousePosInIntervalValue - HANDLE_WIDTH, max: mousePosInIntervalValue + HANDLE_WIDTH}
-      setIntervals([...intervals, newInterval])
-      // TODO SORT
+
+      const newIntervals = sortBy([...intervals, newInterval], 'min')
+      setIntervals(newIntervals)
     }
   }
-
-
 
   const background = getBackgroundImageForIntervals(intervals);
 
