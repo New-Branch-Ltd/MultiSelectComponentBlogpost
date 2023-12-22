@@ -1,17 +1,17 @@
-# Multi-Range selector component
+# Revolutionizing User Interaction: Unveiling the Power of a Multi-Interval Selector Component
 
 ## Introduction
-Multi-range selector or multi-interval selector input is unversal type of input with many use-cases. Some of them are selecting multiple parts of audio|video recording to perform actions on. Just to  
+In the ever-evolving landscape of user interface design, crafting intuitive and efficient components is paramount to delivering a seamless user experience. Enter the realm of the multi-interval selector component – a groundbreaking tool that empowers developers to revolutionize how users interact with data intervals. 
 
-What is multi-range selector? We can define multi-range selector as an input field on
-Creating a multi-range(multi-interval) selector component can be used for several different or other components with complex specifications can be a daunting task. With this article I will hopefully introduce you to the art of creating such components and the process of doing that. This article will follow the process of creation of one such component - multi range selector. In my experience as a software developer I have occasionally needed to create such complex components...
-
+In this article, we delve into the intricacies of developing this kind of component using React and exploring its capabilities and use cases. Whether you're developing a data visualization application, a scheduling tool, or an e-commerce platform, the multi-interval selector component is a game-changer that promises to elevate your user interface to new heights.
 
 ## Specification
-We are going to create a multi-range selector. [IMAGE]
+We are going to create a multi-interval selector.
 
-- Double click on empty space in the range bar to create new area
-- Remove area
+![multi-interval](/public/after-remove.png)
+
+- Double click on empty space in the intervals container to create new interval
+- Remove interval button on the top right of interval.
 
 ## Implementation
 
@@ -292,23 +292,68 @@ We can color the background of our container using a `linear-gradient` backgroun
 Here we color the background of the container with `SELECTED_COLOR` for regions that are in intervals and with `UNSELECTED_COLOR` otherwise.
 
 #### Creating Intervals
+Our next task will be to hook the double click event to create a new interval.
+We can do it like that.
+
+```tsx
+  const handleDoubleClick: MouseEventHandler<HTMLDivElement> = (ev) => {
+    if (!containerRef.current) return;
+
+    const containerBox = containerRef.current.getBoundingClientRect();
+
+    const mousePos = ev.clientX;
+    const mousePosInPx = mousePos - containerBox?.x;
+    const mousePosInIntervalValue = containerPositionToIntervalValue(mousePosInPx);
+
+    const isOutsideIntervals = intervals.every(i => mousePosInIntervalValue < i.min - HANDLE_WIDTH || mousePosInIntervalValue > i.max + HANDLE_WIDTH)
+
+    if (isOutsideIntervals) {
+      const newInterval = {min: mousePosInIntervalValue - HANDLE_WIDTH, max: mousePosInIntervalValue + HANDLE_WIDTH}
+
+      const newIntervals = sortBy([...intervals, newInterval], 'min')
+      setIntervals(newIntervals)
+    }
+  }
+```
+You can notice here that we are creating the interval only if the double click is happening outside of intervals, so that we avoid overlapping intervals problems. Also I am sorting the intervals with lodash `sortBy` function to keep the our collision functionality working.
+
+![multi-interval](/public/after-add.png)
 
 #### Removing Intervals
+Our last task is to hook removing interval functionality. We can do that by adding an `X` button on the top right of every interval.
 
+```tsx
+  <button
+    type="button"
+    style={{
+      position: "absolute",
+      left: `${pixelsRight + 20}px`,
+      top: `-20px`,
+    }}
+    onClick={onDelete}
+  >
+    X
+  </button>
+```
 
-TODO Expain evnet handlers with code. Actually translate the handles based on the mouse events.
+`onDelete` is passed as prop to the interval component. And its implementation in the container is:
 
+```tsx
+  function onDelete(interval: IntervalType) {
+    return () => {
+      setIntervals(intervals.filter((i) => i !== interval));
+    };
+  }
+```
 
-- Event listeners
-- Collision
-- Background Image
-- Create functionality
-- Remove functionality
+With this we have a functional implementation following the specification. 🎉🎉🎉
 
+![multi-interval](/public/after-remove.png)
 
-## Notes about testing | a11y | mobile
-When it comes to testing, this kind of components can be tested via unit test. I'd rather recommend testing them via an integration test library like cypress or playwright.
-TODO Examples::
+## Further Improvements
+- Testing: When it comes to testing, I'd recommend testing it via e2e testing library like cypress or playwright. It will be the easiest in my opinion. You can of course try to test it via unit tests.
+- Accessibility: When it comes to a11y, I suggest you do your own research. Current implementation is NOT accessible. Check the aria roles in MDN.
+- Mobile: This component is not particularly convienient for mobile users. It should work on smaller screens and also be responsive. The handles should be a little bigger to be convienient for mobile users.
+- Background Image: In many cases you would want to render an image/graph behind the multi-interval selector. You can do that by positioning the image with `position: absolute` and using semi-transparent colors for the actual multi-interval selector.
 
-## Summary And Usages
-We created a multi-range selector component that can be used in audio files editor | video editor...
+You can check all of the source code in [GitLab](https://gitlab.com/new-branch-ltd/multi-range-selector-blogpost)

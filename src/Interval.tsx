@@ -1,15 +1,20 @@
 import React, { MouseEventHandler, useEffect, useState } from "react";
-import { HANDLE_WIDTH, IntervalType, containerPositionToIntervalValue, intervalValueToContainerPosition } from "./domain";
+import {
+  HANDLE_WIDTH,
+  IntervalType,
+  containerPositionToIntervalValue,
+  intervalValueToContainerPosition,
+} from "./domain";
 
 interface Props {
   containerRef: React.MutableRefObject<HTMLDivElement | null>;
-  onChange: (newInterval: IntervalType ) => void;
+  onChange: (newInterval: IntervalType) => void;
   onDelete: () => void;
   interval: IntervalType;
 }
 
 function Interval({ interval, containerRef, onChange, onDelete }: Props) {
-  const {min, max} = interval
+  const { min, max } = interval;
 
   const [leftMoving, setLeftMoving] = useState(false);
   const [rightMoving, setRightMoving] = useState(false);
@@ -19,52 +24,52 @@ function Interval({ interval, containerRef, onChange, onDelete }: Props) {
 
   useEffect(() => {
     function stopMoving() {
-      setLeftMoving(false)
-      setRightMoving(false)
+      setLeftMoving(false);
+      setRightMoving(false);
     }
 
-    window.addEventListener('mouseup', stopMoving)
+    window.addEventListener("mouseup", stopMoving);
 
     return () => {
-      window.removeEventListener('mouseup', stopMoving)
-    }
-  }, [])
+      window.removeEventListener("mouseup", stopMoving);
+    };
+  }, []);
 
   function onLeftHandleMouseDown() {
-    setLeftMoving(true)
+    setLeftMoving(true);
   }
 
   function onRightHandleMouseDown() {
-    setRightMoving(true)
+    setRightMoving(true);
   }
 
   const onLeftMouseMove: MouseEventHandler<HTMLDivElement> = (ev) => {
-    if (leftMoving && containerRef.current) {  
+    if (leftMoving && containerRef.current) {
       const containerBox = containerRef.current?.getBoundingClientRect();
-    
+
       const mousePos = ev.clientX;
       const containerMin = containerBox.x;
 
       const minInPx = mousePos - containerMin - HANDLE_WIDTH / 2;
-      const minInInterval = containerPositionToIntervalValue(minInPx)
+      const minInInterval = containerPositionToIntervalValue(minInPx);
 
-      onChange({min: minInInterval, max})
+      onChange({ min: minInInterval, max });
     }
-  }
+  };
 
   const onRightMouseMove: MouseEventHandler<HTMLDivElement> = (ev) => {
     if (rightMoving && containerRef.current) {
       const containerBox = containerRef.current.getBoundingClientRect();
-    
+
       const mousePos = ev.clientX;
       const containerMin = containerBox.x;
 
       const maxInPx = mousePos - containerMin - HANDLE_WIDTH / 2;
-      const maxInInterval = containerPositionToIntervalValue(maxInPx)
+      const maxInInterval = containerPositionToIntervalValue(maxInPx);
 
-      onChange({min, max: maxInInterval})
+      onChange({ min, max: maxInInterval });
     }
-  }
+  };
 
   return (
     <>
@@ -72,7 +77,7 @@ function Interval({ interval, containerRef, onChange, onDelete }: Props) {
         style={{
           position: "absolute",
           left: `${pixelsLeft}px`,
-          width: `${HANDLE_WIDTH}px`
+          width: `${HANDLE_WIDTH}px`,
         }}
         className="left-handle"
         onMouseDown={onLeftHandleMouseDown}
@@ -82,13 +87,21 @@ function Interval({ interval, containerRef, onChange, onDelete }: Props) {
         style={{
           position: "absolute",
           left: `${pixelsRight}px`,
-          width: `${HANDLE_WIDTH}px`
+          width: `${HANDLE_WIDTH}px`,
         }}
         className="right-handle"
         onMouseDown={onRightHandleMouseDown}
         onMouseMove={onRightMouseMove}
       />
-      <button type="button" style={{position: "absolute", left: `${pixelsRight + 20}px`, top: `-20px`}} onClick={onDelete}>
+      <button
+        type="button"
+        style={{
+          position: "absolute",
+          left: `${pixelsRight + 20}px`,
+          top: `-20px`,
+        }}
+        onClick={onDelete}
+      >
         X
       </button>
     </>
