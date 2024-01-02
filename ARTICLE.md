@@ -265,7 +265,11 @@ Knowing that this code should do the trick in handling interval collisions.
 Depending on further specification you might want to shift the boundings +- `HANDLE_WIDTH`px. 
 
 #### Interval Coloring
-We can color the background of our container using a `linear-gradient` background like so:
+Here is what we have so far. 
+
+![multi-interval](/public/before-background.png)
+
+As you can see we are not coloring in any meaningful way the selected interval. We can do the coloring of our container using a `linear-gradient` background like so:
 
 ```tsx
   export function getBackgroundImageForIntervals(
