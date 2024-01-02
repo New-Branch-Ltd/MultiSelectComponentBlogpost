@@ -6,7 +6,7 @@ In the ever-evolving landscape of user interface design, crafting intuitive and 
 In this article, we delve into the intricacies of developing this kind of component using React and exploring its capabilities and use cases. Whether you're developing a data visualization application, a scheduling tool, or an e-commerce platform, the multi-interval selector component is a game-changer that promises to elevate your user interface to new heights.
 
 ## Specification
-We are going to create a multi-interval selector.
+We are going to create a multi-interval selector with the following specifications:
 
 ![multi-interval](/public/after-remove.png)
 
@@ -264,7 +264,7 @@ Knowing that this code should do the trick in handling interval collisions.
 
 Depending on further specification you might want to shift the boundings +- `HANDLE_WIDTH`px. 
 
-#### Background Image
+#### Interval Coloring
 We can color the background of our container using a `linear-gradient` background like so:
 
 ```tsx
@@ -315,7 +315,7 @@ We can do it like that.
     }
   }
 ```
-You can notice here that we are creating the interval only if the double click is happening outside of intervals, so that we avoid overlapping intervals problems. Also I am sorting the intervals with lodash `sortBy` function to keep the our collision functionality working.
+You can notice here that we are creating the interval only if the double click is happening outside of intervals, so that we avoid overlapping intervals problems. Also I am sorting the intervals with lodash `sortBy` function to keep our collision functionality working.
 
 ![multi-interval](/public/after-add.png)
 
@@ -353,7 +353,7 @@ With this we have a functional implementation following the specification. ðŸŽ‰ð
 ## Further Improvements
 - Testing: When it comes to testing, I'd recommend testing it via e2e testing library like cypress or playwright. It will be the easiest in my opinion. You can of course try to test it via unit tests.
 - Accessibility: When it comes to a11y, I suggest you do your own research. Current implementation is NOT accessible. Check the aria roles in MDN.
-- Mobile: This component is not particularly convienient for mobile users. It should work on smaller screens and also be responsive. The handles should be a little bigger to be convienient for mobile users.
+- Mobile: This component is not particularly convienient for mobile users. It should work on smaller screens and also be responsive. The handles should be a little bigger to increase comfort and usability for mobile users.
 - Background Image: In many cases you would want to render an image/graph behind the multi-interval selector. You can do that by positioning the image with `position: absolute` and using semi-transparent colors for the actual multi-interval selector.
 
 You can check all of the source code in [GitLab](https://gitlab.com/new-branch-ltd/multi-range-selector-blogpost)
