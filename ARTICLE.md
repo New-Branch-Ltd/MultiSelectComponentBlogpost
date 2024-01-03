@@ -1,67 +1,77 @@
 # Revolutionizing User Interaction: Unveiling the Power of a Multi-Interval Selector Component
 
 ## Introduction
-In the ever-evolving landscape of user interface design, crafting intuitive and efficient components is paramount to delivering a seamless user experience. Enter the realm of the multi-interval selector component – a groundbreaking tool that empowers developers to revolutionize how users interact with data intervals. 
+In the ever-evolving landscape of user interface design, crafting intuitive and efficient components is paramount to delivering a seamless user experience.
 
-In this article, we delve into the intricacies of developing this kind of component using React and exploring its capabilities and use cases. Whether you're developing a data visualization application, a scheduling tool, or an e-commerce platform, the multi-interval selector component is a game-changer that promises to elevate your user interface to new heights.
+In this article, we delve into the specifics of developing this kind of component using React and exploring its capabilities. Some of the use cases are: Selecting parts of audio recording to be edited by audio manipulation software, selecting parts of a video to be cut or more generally selecting multiple intervals of some data to operate on.
 
-## Specification
-We are going to create a multi-interval selector with the following specifications:
+Current implementation is going to be rather simple. We will have a container where we render the multi-interval selector. We will have the ability to create a new interval by double clicking on an empty space. We will also have an `X` button to delete an interval. Each interval will have handles to hold and drag. We will also add some logic for collission detection so that the intervals don't overlap. The final component will look something like that.
 
 ![multi-interval](/public/after-remove.png)
-
-- Double click on empty space in the intervals container to create new interval
-- Remove interval button on the top right of interval.
 
 ## Implementation
 
 #### Setup
-Let's start by setting up some constants to be used later.
-```tsx
-  export const CONTAINER_WIDTH = 800;
-  export const HANDLE_WIDTH = 20;
-  export const INTERVAL_MIN = 0;
-  export const INTERVAL_MAX = 1000;
-```
-
-Then let's set up a container and state.
-
-```tsx
-interface IntervalType {
-  min: number;
-  max: number;
-}
-
-function App() {
-  const [intervals, setIntervals] = useState<IntervalType[]>([{min: 0, max: 1000}])
-
-  return (
-    <div className="App">
-      <h1>Multi-Interval Selector</h1>
-
-      <div className="container" style={{width: `${CONTAINER_WIDTH}px`}}>
-        {intervals.map((i, ind) => <Interval key={ind} i={i} />)}
-      </div>
-    </div>
-  );
-}
-```
-
-and an `Interval.tsx` component
-
-```tsx
-  interface Props {
+Let's start by defining an interface for the component. I would suggest something like this:
+```ts
+  interface Interval {
     min: number;
     max: number;
   }
 
-  function Interval({min, max}: Props) {
+  interface Props {
+    domain: {
+      min: number;
+      max: number;
+    };
+    container: {
+      width: number;
+      height: number;
+    };
+    initial: Interval[];
+    onChange: (intervals: Interval[]) => void;
+  }
+
+  function MultiInterval(props: Props) {
+    return <div>Multi Interval</div>;
+  }
+```
+Here I am passing the container dimensions where the multi-interval will be rendered.
+Also I am passing a domain minimum and maximum for the values.
+Then let's set up a container and state.
+
+```tsx
+const UNSELECTED_COLOR = "#FCF9BE";
+
+function MultiInterval(props: Props) {
+  const { initial, container } = props;
+
+  const [intervals, setIntervals] = useState<Interval[]>(initial);
+
+  const style = {
+    background: UNSELECTED_COLOR,
+    width: container.width,
+    height: container.height,
+  };
+
+  return <div className="container" style={style}></div>;
+}
+```
+
+and an `SingleInterval.tsx` component
+
+```tsx
+  interface Props {
+    interval: Interval;
+  }
+
+  function SingleInterval() {
     return (
       <>
         <div className="left-handle" />
         <div className="right-handle" />
       </>
-    )
+    );
   }
 ```
 
@@ -70,39 +80,50 @@ and some basic styles to start with:
 ```css
   .container {
     display: flex;
-    height: 200px;
-    background: rgba(0,100,255,0.3);
+    position: relative;
   }
 
-  .left-handle, .right-handle {
+  .left-handle,
+  .right-handle {
     height: 100%;
-    background: rgba(0,100,255,0.8);
+    background: rgba(250, 171, 120, 0.8);
   }
 
-  .left-handle:hover, .right-handle:hover {
+  .left-handle:hover,
+  .right-handle:hover {
     cursor: pointer;
-    background: rgb(0,100,255);
+    background: rgb(250, 171, 120);
   }
 ```
 
 #### Transforming values
 Now lets set up a utility function to transform value from the interval to 
-pixel position in the container. It will look something like that.
+pixel position in the container. It will look something like this.
 
 ```ts
-  export function intervalValueToContainerPosition(intervalValue: number) {
-    return (intervalValue * CONTAINER_WIDTH) / INTERVAL_MAX;
+  export function intervalValueToContainerPosition(
+    containerWidth: number,
+    interval: Interval
+  ) {
+    return (intervalValue: number) =>
+      (intervalValue * containerWidth) / (interval.max - interval.min);
   }
 ```
 
-We can then use it in `Interval.tsx` like so:
+We can then use it in `SingleInterval.tsx` like so:
 
 ```tsx
-  function Interval({ interval }: Props) {
-    const {min, max} = interval;
+  interface Props {
+    interval: Interval;
+    intervalToContainer: (intervalValue: number) => number;
+  }
 
-    const pixelsLeft = intervalValueToContainerPosition(min);
-    const pixelsRight = intervalValueToContainerPosition(max);
+  function SingleInterval(props: Props) {
+    const { interval, intervalToContainer } = props;
+    const { min, max } = interval;
+
+    const pixelsLeft = intervalToContainer(min);
+    const pixelsRight = intervalToContainer(max);
     
     return (
       <>
@@ -125,13 +146,32 @@ We can then use it in `Interval.tsx` like so:
       </>
     );
   }
+```
 
-  export default Interval;
+And here is how the transformation function is passed to the SingleInterval component.
+
+```tsx
+  const intervalToContainer = intervalValueToContainerPosition(
+    container.width,
+    domain
+  );
+
+  return (
+    <div className="container" style={style}>
+      {intervals.map((i, ind) => (
+        <SingleInterval
+          key={ind}
+          interval={i}
+          intervalToContainer={intervalToContainer}
+        />
+      ))}
+    </div>
+  );
 ```
 
 #### Event Listeners
 
-Our next job will be to hook event listeners on the handles. We can setup the `mousedown` event listener on the handle to update state describing if the handle is moving like so:
+Our next job will be to hook event listeners on the handles. We can setup the `mousedown` event listener on the handle like so:
 ```tsx
   const [leftMoving, setLeftMoving] = useState(false);
   const [rightMoving, setRightMoving] = useState(false);
@@ -232,11 +272,30 @@ The current jsx in the container component look like that:
 And here is the `onChange` handler in the container component.
 
 ```tsx
-  function onIntervalChange(interval: IntervalType) {
-    return (newInterval: IntervalType) => {
-      setIntervals(intervals.map(i => i === interval ? newInterval : i))
-    }
+  function onIntervalChange(interval: Interval) {
+    return (newInterval: Interval) => {
+      const newIntervals = intervals.map((i) =>
+        i === interval ? newInterval : i
+      );
+      setIntervals(newIntervals);
+      props.onChange(newIntervals);
+    };
   }
+
+  return (
+    <div className="container" style={style} ref={containerRef}>
+      {intervals.map((i, ind) => (
+        <SingleInterval
+          key={ind}
+          interval={i}
+          intervalToContainer={intervalToContainer}
+          containerToInterval={containerToInterval}
+          containerRef={containerRef}
+          onChange={onIntervalChange(i)}
+        />
+      ))}
+    </div>
+  );
 ```
 
 Notice that in this event handler we don't handle collisions between intervals or dragging out of the container box. This will be our next task. 
@@ -260,9 +319,7 @@ Knowing that this code should do the trick in handling interval collisions.
       setIntervals(intervals.map((i) => (i === interval ? newIntervalBounded : i)));
     };
   }
-```
-
-Depending on further specification you might want to shift the boundings +- `HANDLE_WIDTH`px. 
+``` 
 
 #### Interval Coloring
 Here is what we have so far. 
