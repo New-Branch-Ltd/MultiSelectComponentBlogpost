@@ -326,25 +326,21 @@ Here is what we have so far.
 
 ![multi-interval](/public/before-background.png)
 
-As you can see we are not coloring in any meaningful way the selected interval. We can do the coloring of our container using a `linear-gradient` background like so:
+As you can see we are not coloring in any meaningful way the selected interval. We can do the coloring of our container in several ways. Use divs for the actual selected area in the interval. This will be a bit complicated, because we will need to resize 2 divs when moving a handle. There is also another idea: to color the background using css `linear-gradient`. I will implement the coloring using the second option, although note that the first one has the benefit of allowing the rendering of text or other things inside the divs.
 
 ```tsx
-  export function getBackgroundImageForIntervals(
-    intervals: IntervalType[]
-  ): string {
+  function getBackgroundImageForIntervals(intervals: Interval[]): string {
     return (
       intervals.reduce(
         (acc, interval) =>
           acc +
-          `,${UNSELECTED_COLOR} ${intervalValueToContainerPosition(
+          `,${UNSELECTED_COLOR} ${
+            intervalToContainer(interval.min) + HANDLE_WIDTH
+          }px, ${SELECTED_COLOR} ${intervalToContainer(
             interval.min
-          ) + HANDLE_WIDTH}px, ${SELECTED_COLOR} ${intervalValueToContainerPosition(
-            interval.min
-          )}px ${intervalValueToContainerPosition(
+          )}px ${intervalToContainer(
             interval.max
-          )}px, ${UNSELECTED_COLOR} ${intervalValueToContainerPosition(
-            interval.max
-          )}px`,
+          )}px, ${UNSELECTED_COLOR} ${intervalToContainer(interval.max)}px`,
         "linear-gradient(to right "
       ) + ")"
     );
@@ -352,6 +348,44 @@ As you can see we are not coloring in any meaningful way the selected interval. 
 ```
 Here we color the background of the container with `SELECTED_COLOR` for regions that are in intervals and with `UNSELECTED_COLOR` otherwise.
 
+#### Display Interval Values
+Next I would like to display the interval values right under the handles. This can easily be done by adding a span inside the div handles like so:
+
+```tsx
+    <div
+      style={{
+        position: "absolute",
+        left: `${pixelsLeft}px`,
+        width: `${HANDLE_WIDTH}px`,
+      }}
+      className="left-handle"
+      onMouseDown={onLeftHandleMouseDown}
+      onMouseMove={onLeftMouseMove}
+    >
+      <span className="value">{interval.min}</span>
+    </div>
+    <div
+      style={{
+        position: "absolute",
+        left: `${pixelsRight}px`,
+        width: `${HANDLE_WIDTH}px`,
+      }}
+      className="right-handle"
+      onMouseDown={onRightHandleMouseDown}
+      onMouseMove={onRightMouseMove}
+    >
+      <span className="value">{interval.max}</span>
+    </div>
+  </>
+```
+and adding a bit more css to position the text properly:
+
+```css
+  .value {
+    position: relative;
+    top: 100%;
+  }
+```
 #### Creating Intervals
 Our next task will be to hook the double click event to create a new interval.
 We can do it like that.
@@ -364,24 +398,32 @@ We can do it like that.
 
     const mousePos = ev.clientX;
     const mousePosInPx = mousePos - containerBox?.x;
-    const mousePosInIntervalValue = containerPositionToIntervalValue(mousePosInPx);
+    const mousePosInIntervalValue = containerToInterval(mousePosInPx);
 
-    const isOutsideIntervals = intervals.every(i => mousePosInIntervalValue < i.min - HANDLE_WIDTH || mousePosInIntervalValue > i.max + HANDLE_WIDTH)
+    const isOutsideIntervals = intervals.every(
+      (i) =>
+        mousePosInIntervalValue < i.min - HANDLE_WIDTH ||
+        mousePosInIntervalValue > i.max + HANDLE_WIDTH
+    );
 
     if (isOutsideIntervals) {
-      const newInterval = {min: mousePosInIntervalValue - HANDLE_WIDTH, max: mousePosInIntervalValue + HANDLE_WIDTH}
+      const newInterval = {
+        min: mousePosInIntervalValue - HANDLE_WIDTH,
+        max: mousePosInIntervalValue + HANDLE_WIDTH,
+      };
 
-      const newIntervals = sortBy([...intervals, newInterval], 'min')
-      setIntervals(newIntervals)
+      const newIntervals = sortBy([...intervals, newInterval], "min");
+      setIntervals(newIntervals);
+      props.onChange(newIntervals)
     }
-  }
+  };
 ```
 You can notice here that we are creating the interval only if the double click is happening outside of intervals, so that we avoid overlapping intervals problems. Also I am sorting the intervals with lodash `sortBy` function to keep our collision functionality working.
 
 ![multi-interval](/public/after-add.png)
 
 #### Removing Intervals
-Our last task is to hook removing interval functionality. We can do that by adding an `X` button on the top right of every interval.
+Our last task is to hook remove interval functionality. We can do that by adding an `X` button on the top right of every interval.
 
 ```tsx
   <button
@@ -400,9 +442,11 @@ Our last task is to hook removing interval functionality. We can do that by addi
 `onDelete` is passed as prop to the interval component. And its implementation in the container is:
 
 ```tsx
-  function onDelete(interval: IntervalType) {
+  function onDelete(interval: Interval) {
     return () => {
-      setIntervals(intervals.filter((i) => i !== interval));
+      const newIntervals = intervals.filter((i) => i !== interval);
+      setIntervals(newIntervals);
+      props.onChange(newIntervals);
     };
   }
 ```
@@ -416,5 +460,6 @@ With this we have a functional implementation following the specification. ðŸŽ‰ð
 - Accessibility: When it comes to a11y, I suggest you do your own research. Current implementation is NOT accessible. Check the aria roles in MDN.
 - Mobile: This component is not particularly convienient for mobile users. It should work on smaller screens and also be responsive. The handles should be a little bigger to increase comfort and usability for mobile users.
 - Background Image: In many cases you would want to render an image/graph behind the multi-interval selector. You can do that by positioning the image with `position: absolute` and using semi-transparent colors for the actual multi-interval selector.
+- Handles: You might have noticed that it is that the handles themselves are currently not included inside the intervals and it is not clear from our specification if we should include them. That makes it impossible to select two very close intervals(within handle width distance). In some specific cases this might be a problem. An alternative implementation where the handles have a width of 1px and there is a button right above them to drag could solve that. Of course the delete logic would also need to be reworked.
 
 You can check all of the source code in [GitLab](https://gitlab.com/new-branch-ltd/multi-range-selector-blogpost)
