@@ -1,11 +1,11 @@
 # Revolutionizing User Interaction: Unveiling the Power of a Multi-Interval Selector Component
 
 ## Introduction
-In the ever-evolving landscape of user interface design, crafting intuitive and efficient components is paramount to delivering a seamless user experience.
+In the ever-evolving landscape of user interface design, crafting intuitive and efficient components is important to delivering a good user experience.
 
-In this article, we delve into the specifics of developing this kind of component using React and exploring its capabilities. Some of the use cases are: Selecting parts of audio recording to be edited by audio manipulation software, selecting parts of a video to be cut or more generally selecting multiple intervals of some data to operate on.
+In this article, we delve into the basics of developing this kind of component using React and exploring its capabilities. Some of the use cases are: Selecting parts of audio recording to be edited by audio manipulation software, selecting parts of a video to be cut or more generally selecting multiple intervals of some data to operate on.
 
-Current implementation is going to be rather simple. We will have a container where we render the multi-interval selector. We will have the ability to create a new interval by double clicking on an empty space. We will also have an `X` button to delete an interval. Each interval will have handles to hold and drag. We will also add some logic for collission detection so that the intervals don't overlap. The final component will look something like that.
+Current implementation is going to be rather simple. We will have a container where we render the multi-interval selector. We will have the ability to create a new interval by double clicking on an empty space. We will also have an `X` button to delete an interval. Each interval will have handles to hold and drag. We will also add some logic for collission detection so that the intervals don't overlap. The final component will look something like this.
 
 ![multi-interval](/public/after-remove.png)
 
@@ -130,7 +130,7 @@ We can then use it in `SingleInterval.tsx` like so:
         <div
           style={{
             position: "absolute",
-            left: `${pixelsLeft}px`,
+            left: `${pixelsLeft - HANDLE_WIDTH}px`,
             width: `${HANDLE_WIDTH}px`
           }}
           className="left-handle"
@@ -148,6 +148,7 @@ We can then use it in `SingleInterval.tsx` like so:
   }
 ```
 
+You can see that the left handle is offset by `HANDLE_WIDTH`. We do this because we want only the values between the handles to be part of the interval.
 And here is how the transformation function is passed to the SingleInterval component.
 
 ```tsx
@@ -203,42 +204,57 @@ Our next job will be to hook event listeners on the handles. We can setup the `m
 
 You will notice that here I also added a `mouseup` event handler on the `window` to clear the state. It is added on the `window` to handle edge case when the handle is dragged away from the container and then the mouse button is released.
 
-Next I will add the `mousemove` event handler on the handle and call `onChange` callback to update the position of the handles.
+Next I will add the `mousemove` event handler on the container and call `onChange` callback to update the position of the handles.
 
 ```tsx
-  const onLeftMouseMove: MouseEventHandler<HTMLDivElement> = (ev) => {
-    if (leftMoving && containerRef.current) {  
-      const containerBox = containerRef.current?.getBoundingClientRect();
-    
-      const mousePos = ev.clientX;
-      const containerMin = containerBox.x;
+  useEffect(() => {
+    const handleMouseMove = (ev: MouseEvent) => {
+      if (!containerRef.current) return;
 
-      const minInPx = mousePos - containerMin - HANDLE_WIDTH / 2;
-      const minInInterval = containerPositionToIntervalValue(minInPx)
+      if (leftMoving) {
+        console.log("mousemove LEFT");
+        const containerBox = containerRef.current?.getBoundingClientRect();
 
-      onChange({min: minInInterval, max})
-    }
-  }
+        const mousePos = ev.clientX;
+        const containerMin = containerBox.x;
 
-  const onRightMouseMove: MouseEventHandler<HTMLDivElement> = (ev) => {
-    if (rightMoving && containerRef.current) {
-      const containerBox = containerRef.current?.getBoundingClientRect();
-    
-      const mousePos = ev.clientX;
-      const containerMin = containerBox.x;
+        const minInPx = mousePos - containerMin + HANDLE_WIDTH / 2;
+        const minInInterval = containerToInterval(minInPx);
 
-      const maxInPx = mousePos - containerMin - HANDLE_WIDTH / 2;
-      const maxInInterval = containerPositionToIntervalValue(maxInPx)
+        if (minInInterval < max) {
+          onChange({ min: minInInterval, max });
+        }
+      } else if (rightMoving) {
+        const containerBox = containerRef.current?.getBoundingClientRect();
 
-      onChange({min, max: maxInInterval})
-    }
-  }
+        const mousePos = ev.clientX;
+        const containerMin = containerBox.x;
+
+        const maxInPx = mousePos - containerMin - HANDLE_WIDTH / 2;
+        const maxInInterval = containerToInterval(maxInPx);
+
+        if (min < maxInInterval) {
+          onChange({ min, max: maxInInterval });
+        }
+      }
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+    };
+  }, [leftMoving, rightMoving]);
 ```
 
 You will notice here that I am getting the position of the mouse relative to the container position. I am passing the `containerRef` as a prop. `containerPositionToIntervalValue` is another utility function I have added that looks like that:
 ```tsx
-  export function containerPositionToIntervalValue(containerPosition: number) {
-    return (containerPosition * (INTERVAL_MAX - INTERVAL_MIN)) / CONTAINER_WIDTH
+export function containerPositionToIntervalValue(
+  containerWidth: number,
+  interval: Interval
+) {
+  return (containerPosition: number) =>
+    (containerPosition * (interval.max - interval.min)) / containerWidth;
 }
 ```
 
@@ -254,7 +270,6 @@ The current jsx in the container component look like that:
       }}
       className="left-handle"
       onMouseDown={onLeftHandleMouseDown}
-      onMouseMove={onLeftMouseMove}
     />
     <div
       style={{
@@ -264,7 +279,6 @@ The current jsx in the container component look like that:
       }}
       className="right-handle"
       onMouseDown={onRightHandleMouseDown}
-      onMouseMove={onRightMouseMove}
     />
   </>
 ```
@@ -305,18 +319,37 @@ For simplicity we will keep all intervals ordered from left to right in the stat
 Knowing that this code should do the trick in handling interval collisions.
 
 ```tsx
-  function onIntervalChange(interval: IntervalType) {
-    return (newInterval: IntervalType) => {
-      const currentIntervalIndex = intervals.findIndex(i => i === interval);
+  function onIntervalChange(interval: Interval) {
+    return (newInterval: Interval) => {
+      const currentIntervalIndex = intervals.findIndex((i) => i === interval);
       const previousInterval = intervals[currentIntervalIndex - 1];
       const nextInterval = intervals[currentIntervalIndex + 1];
 
-      const newIntervalMin = Math.min(Math.max(newInterval.min, previousInterval?.max ?? INTERVAL_MIN), newInterval.max)
-      const newIntervalMax = Math.max(Math.min(newInterval.max, nextInterval?.min ?? INTERVAL_MAX,), newInterval.min)
+      const newIntervalMin = Math.max(
+        newInterval.min,
+        previousInterval
+          ? previousInterval.max + 2 * containerToInterval(HANDLE_WIDTH)
+          : domain.min
+      );
 
-      const newIntervalBounded: IntervalType = {min: newIntervalMin, max: newIntervalMax}
+      const newIntervalMax = Math.min(
+        newInterval.max,
+        nextInterval
+          ? nextInterval.min - 2 * containerToInterval(HANDLE_WIDTH)
+          : domain.max
+      );
 
-      setIntervals(intervals.map((i) => (i === interval ? newIntervalBounded : i)));
+      const newIntervalBounded: Interval = {
+        min: newIntervalMin,
+        max: newIntervalMax,
+      };
+
+      const newIntervals = intervals.map((i) =>
+        i === interval ? newIntervalBounded : i
+      );
+
+      setIntervals(newIntervals);
+      props.onChange(newIntervals);
     };
   }
 ``` 
@@ -330,13 +363,17 @@ As you can see we are not coloring in any meaningful way the selected interval. 
 
 ```tsx
   function getBackgroundImageForIntervals(intervals: Interval[]): string {
+    if (intervals.length === 0) {
+      return UNSELECTED_COLOR;
+    }
+
     return (
       intervals.reduce(
         (acc, interval) =>
           acc +
-          `,${UNSELECTED_COLOR} ${
-            intervalToContainer(interval.min) + HANDLE_WIDTH
-          }px, ${SELECTED_COLOR} ${intervalToContainer(
+          `,${UNSELECTED_COLOR} ${intervalToContainer(
+            interval.min
+          )}px, ${SELECTED_COLOR} ${intervalToContainer(
             interval.min
           )}px ${intervalToContainer(
             interval.max
@@ -355,14 +392,13 @@ Next I would like to display the interval values right under the handles. This c
     <div
       style={{
         position: "absolute",
-        left: `${pixelsLeft}px`,
+        left: `${pixelsLeft - HANDLE_WIDTH}px`,
         width: `${HANDLE_WIDTH}px`,
       }}
       className="left-handle"
       onMouseDown={onLeftHandleMouseDown}
-      onMouseMove={onLeftMouseMove}
     >
-      <span className="value">{interval.min}</span>
+      <span className="value">{Number(interval.min).toFixed(1)}</span>
     </div>
     <div
       style={{
@@ -372,9 +408,8 @@ Next I would like to display the interval values right under the handles. This c
       }}
       className="right-handle"
       onMouseDown={onRightHandleMouseDown}
-      onMouseMove={onRightMouseMove}
     >
-      <span className="value">{interval.max}</span>
+      <span className="value">{Number(interval.min).toFixed(1)}</span>
     </div>
   </>
 ```
@@ -426,17 +461,17 @@ You can notice here that we are creating the interval only if the double click i
 Our last task is to hook remove interval functionality. We can do that by adding an `X` button on the top right of every interval.
 
 ```tsx
-  <button
-    type="button"
-    style={{
-      position: "absolute",
-      left: `${pixelsRight + 20}px`,
-      top: `-20px`,
-    }}
-    onClick={onDelete}
-  >
-    X
-  </button>
+    <button
+      type="button"
+      style={{
+        position: "absolute",
+        left: `${pixelsRight + HANDLE_WIDTH}px`,
+        top: `-${HANDLE_WIDTH}px`,
+      }}
+      onClick={onDelete}
+    >
+      X
+    </button>
 ```
 
 `onDelete` is passed as prop to the interval component. And its implementation in the container is:
@@ -463,3 +498,5 @@ With this we have a functional implementation following the specification. ðŸŽ‰ð
 - Handles: You might have noticed that it is that the handles themselves are currently not included inside the intervals and it is not clear from our specification if we should include them. That makes it impossible to select two very close intervals(within handle width distance). In some specific cases this might be a problem. An alternative implementation where the handles have a width of 1px and there is a button right above them to drag could solve that. Of course the delete logic would also need to be reworked.
 
 You can check all of the source code in [GitLab](https://gitlab.com/new-branch-ltd/multi-range-selector-blogpost)
+
+You can view a working example in [CodeSandbox](https://codesandbox.io/p/sandbox/multi-interval-vjs8kw?file=%2Fsrc%2FMultiInterval.tsx%3A112%2C50)
