@@ -204,7 +204,7 @@ Our next job will be to hook event listeners on the handles. We can setup the `m
 
 You will notice that here I also added a `mouseup` event handler on the `window` to clear the state. It is added on the `window` to handle edge case when the handle is dragged away from the container and then the mouse button is released.
 
-Next I will add the `mousemove` event handler on the container and call `onChange` callback to update the position of the handles.
+Next I will add the `mousemove` event handler on the window and call `onChange` callback to update the position of the handles.
 
 ```tsx
   useEffect(() => {
@@ -212,7 +212,6 @@ Next I will add the `mousemove` event handler on the container and call `onChang
       if (!containerRef.current) return;
 
       if (leftMoving) {
-        console.log("mousemove LEFT");
         const containerBox = containerRef.current?.getBoundingClientRect();
 
         const mousePos = ev.clientX;
@@ -434,17 +433,18 @@ We can do it like that.
     const mousePos = ev.clientX;
     const mousePosInPx = mousePos - containerBox?.x;
     const mousePosInIntervalValue = containerToInterval(mousePosInPx);
+    const handleOffsetInInterval = containerToInterval(2 * HANDLE_WIDTH)
 
     const isOutsideIntervals = intervals.every(
       (i) =>
-        mousePosInIntervalValue < i.min - HANDLE_WIDTH ||
-        mousePosInIntervalValue > i.max + HANDLE_WIDTH
+        mousePosInIntervalValue < i.min - handleOffsetInInterval ||
+        mousePosInIntervalValue > i.max + handleOffsetInInterval
     );
 
     if (isOutsideIntervals) {
       const newInterval = {
-        min: mousePosInIntervalValue - HANDLE_WIDTH,
-        max: mousePosInIntervalValue + HANDLE_WIDTH,
+        min: mousePosInIntervalValue,
+        max: mousePosInIntervalValue,
       };
 
       const newIntervals = sortBy([...intervals, newInterval], "min");
