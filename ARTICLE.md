@@ -9,92 +9,145 @@ Current implementation is going to be rather simple. We will have a container wh
 
 ![multi-interval](/public/after-remove.png)
 
-## Implementation
+## Defining the component's interface
 
-#### Setup
-Let's start by defining an interface for the component. I would suggest something like this:
+Let's start by setting up the related objects and components interfaces.
+
+An interval will be represented by a simple object with `min` and `max` properties.
 ```ts
-  interface Interval {
-    min: number;
-    max: number;
-  }
-
-  interface Props {
-    domain: {
-      min: number;
-      max: number;
-    };
-    container: {
-      width: number;
-      height: number;
-    };
-    initial: Interval[];
-    onChange: (intervals: Interval[]) => void;
-  }
-
-  function MultiInterval(props: Props) {
-    return <div>Multi Interval</div>;
-  }
+// Interval.ts
+interface Interval {
+  min: number;
+  max: number;
+}
 ```
-Here I am passing the container dimensions where the multi-interval will be rendered.
-Also I am passing a domain minimum and maximum for the values.
-Then let's set up a container and state.
+
+Our custom component will be called `MultiIntervalSelect`. As any other component
+that gets input from the user, it needs to have a property for the currently
+selected value and a handler, that will be invoked whenever the user
+changes the selection.
+
+In practice, there will always be an upper and a lower bound that the intervals
+will have to obey to. For example, if we are selecting multiple ranges of a 
+video file that we want to cut, or to apply filter to, then the lower bound will
+be zero, and the upper bound will be the length of the video. We will define
+a `domain` property to represent this.
+
+Another decision we have to make is how to define the component's dimensions on
+the screen. Do we need it to fill all the available space in the parent
+component, to be responsive and change with screen dimensions, or it will always
+have a fixed size? In the real life, these are very nice questions that we need
+to answer. But, for the sake of simplicity we will assume that our component
+will always have a fixed dimensions, and we will use `width` and `height` properties.
+
+In the end, our main component interface will look something like this:
+```ts
+// MultiIntervalSelect.ts
+interface Props {
+  domain: Interval;
+  width: number;
+  height: number;
+  value: Interval[];
+  onChange: (newValue: Interval[]) => void;
+}
+
+// TODO Controlled vs Uncontrolled component asside?
+// TODO Which one should we use?
+
+function MultiIntervalSelect(props: Props) {
+  return <div>TODO</div>;
+}
+```
+
+## Rendering selected intervals on the screen
+
+The next step is to render the selected intervals on the screen. For each
+interval, we will create a left and a right handle, that will later be used to
+resize the interval by dragging them. We also need a button for deleting the
+interval.
+
+We will use a helper component for rendering a single interval, and we can
+start with the following boilerplate
 
 ```tsx
-const UNSELECTED_COLOR = "#FCF9BE";
+// SingleInterval.tsx
+interface Props {
+  ? width: number;
+  interval: Interval;
+  onDelete: () => void;
+  ? onLeftHandle: () => void;
+  ? onRightHandleGrab: () => void;
+}
 
-function MultiInterval(props: Props) {
-  const { initial, container } = props;
+// TODO Should we add a middle handle? What are the benefits
+// TODO Should we add a contianer instead of a middle handle?
+// TODO Add the delete button
 
-  const [intervals, setIntervals] = useState<Interval[]>(initial);
+// TODO Can we implement the component, without relying on specific css/visual properties, e.g. Handle widht?
 
+function SingleInterval() {
+  return (
+    <>
+      <div className="left-handle" />
+      <div className="right-handle" />
+    </>
+  );
+}
+```
+
+```css
+/* SingleInterval.css */
+.container {
+    display: flex;
+    position: relative;
+}
+
+.left-handle,
+.right-handle {
+    height: 100%;
+    background: rgba(250, 171, 120, 0.8);
+}
+
+.left-handle:hover,
+.right-handle:hover {
+    cursor: pointer;
+    background: rgb(250, 171, 120);
+}
+```
+
+Then the main component will create a container with the specified dimensions,
+and render a `SingleInterval` component for each interval.
+
+```tsx
+// MultiIntervalSelect.tsx
+function MultiIntervalSelect(props: Props) {
   const style = {
     background: UNSELECTED_COLOR,
     width: container.width,
     height: container.height,
   };
 
-  return <div className="container" style={style}></div>;
+  return (
+    <div className="container" style={style}>
+      {props.value.map((i, ind) => (
+        <SingleInterval
+          key={ind} // `min-max` key ?
+          interval={i}
+          intervalToContainer={intervalToContainer}
+        />
+      ))}
+    </div>
+  );
 }
 ```
 
-and an `SingleInterval.tsx` component
+## Implementing create interaction
 
-```tsx
-  interface Props {
-    interval: Interval;
-  }
+## Resizing intervals
 
-  function SingleInterval() {
-    return (
-      <>
-        <div className="left-handle" />
-        <div className="right-handle" />
-      </>
-    );
-  }
-```
 
-and some basic styles to start with:
 
-```css
-  .container {
-    display: flex;
-    position: relative;
-  }
 
-  .left-handle,
-  .right-handle {
-    height: 100%;
-    background: rgba(250, 171, 120, 0.8);
-  }
-
-  .left-handle:hover,
-  .right-handle:hover {
-    cursor: pointer;
-    background: rgb(250, 171, 120);
-  }
-```
 
 #### Transforming values
 Now lets set up a utility function to transform value from the interval to 
