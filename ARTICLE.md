@@ -491,9 +491,9 @@ With this we have a functional implementation following the specification. ðŸŽ‰ð
 ![multi-interval](/public/after-remove.png)
 
 ## Further Improvements
-- Testing: When it comes to testing, I'd recommend testing it via e2e testing library like cypress or playwright. It will be the easiest in my opinion. You can of course try to test it via unit tests.
-- Accessibility: When it comes to a11y, I suggest you do your own research. Current implementation is NOT accessible. Check the aria roles in MDN.
-- Mobile: This component is not particularly convienient for mobile users. It should work on smaller screens and also be responsive. The handles should be a little bigger to increase comfort and usability for mobile users.
+- Testing: When it comes to testing, I'd recommend testing it via e2e testing library like cypress or playwright. It will be the easiest in my opinion. 
+- Accessibility: Current implementation is NOT accessible. A few suggestions I have are to make sure that handles and remove buttons are targetable by tab. Maybe increase/decrease of interval with arrows can also be implemented. Also check the aria roles to make sure that screen readers understand properly what we have on screen. 
+- Mobile: This component is not particularly convienient for mobile users. The handles should be a little bigger to increase comfort and usability. Also events might be required to change `onDoubleClick` to `onDoubleTap` etc.
 - Background Image: In many cases you would want to render an image/graph behind the multi-interval selector. You can do that by positioning the image with `position: absolute` and using semi-transparent colors for the actual multi-interval selector.
 - Handles: You might have noticed that it is that the handles themselves are currently not included inside the intervals and it is not clear from our specification if we should include them. That makes it impossible to select two very close intervals(within handle width distance). In some specific cases this might be a problem. An alternative implementation where the handles have a width of 1px and there is a button right above them to drag could solve that. Of course the delete logic would also need to be reworked.
 
