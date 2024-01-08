@@ -26,6 +26,7 @@
   height: 100%;
   position: absolute;
   background: rgba(250, 171, 120);
+  user-select: none;
 }
 
 .left-handle {
@@ -40,13 +41,13 @@
 .right-handle:hover {
   cursor: pointer;
   background: rgb(220, 141, 90);
-  user-select: none;
 }
 
 .delete-button {
   position: absolute;
   left: 100%;
   top: -20px;
+  user-select: none;
 }
 
 .value {

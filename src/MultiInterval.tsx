@@ -7,8 +7,6 @@ import {
   containerPositionToIntervalValue,
 } from "./utils";
 
-const HANDLE_WIDTH = 20;
-
 interface Props {
   domain: {
     min: number;
@@ -51,11 +49,9 @@ function MultiInterval(props: Props) {
 
       if (currentInterval.min === newInterval.min) {
         // dragging right
-
         newIntervalMax = Math.max(newIntervalMin, Math.min(newInterval.max, nextInterval ? nextInterval.min : domain.max))
       } else {
         // dragging left
-
         newIntervalMin = Math.min(newIntervalMax, Math.max(newInterval.min, previousInterval ? previousInterval.max : domain.min))
       }
       
@@ -81,12 +77,11 @@ function MultiInterval(props: Props) {
     const mousePos = ev.clientX;
     const mousePosInPx = mousePos - containerBox?.x;
     const mousePosInIntervalValue = containerToInterval(mousePosInPx);
-    const handleOffsetInInterval = containerToInterval(2 * HANDLE_WIDTH)
 
     const isOutsideIntervals = intervals.every(
       (i) =>
-        mousePosInIntervalValue < i.min - handleOffsetInInterval ||
-        mousePosInIntervalValue > i.max + handleOffsetInInterval
+        mousePosInIntervalValue < i.min ||
+        mousePosInIntervalValue > i.max 
     );
 
     if (isOutsideIntervals) {

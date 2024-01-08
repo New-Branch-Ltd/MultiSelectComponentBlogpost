@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import type { Interval } from "./types";
 
-
 interface Props {
   containerRef: React.MutableRefObject<HTMLDivElement | null>;
   interval: Interval;
