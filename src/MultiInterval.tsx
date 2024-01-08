@@ -7,8 +7,6 @@ import {
   containerPositionToIntervalValue,
 } from "./utils";
 
-const SELECTED_COLOR = "#FFDCA9";
-const UNSELECTED_COLOR = "#FCF9BE";
 const HANDLE_WIDTH = 20;
 
 interface Props {
@@ -30,6 +28,8 @@ function MultiInterval(props: Props) {
   const [intervals, setIntervals] = useState<Interval[]>(initial);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
+
+
   const intervalToContainer = intervalValueToContainerPosition(
     container.width,
     domain
@@ -42,23 +42,23 @@ function MultiInterval(props: Props) {
   function onIntervalChange(interval: Interval) {
     return (newInterval: Interval) => {
       const currentIntervalIndex = intervals.findIndex((i) => i === interval);
+      const currentInterval = intervals[currentIntervalIndex];
       const previousInterval = intervals[currentIntervalIndex - 1];
       const nextInterval = intervals[currentIntervalIndex + 1];
 
-      const newIntervalMin = Math.max(
-        newInterval.min,
-        previousInterval
-          ? previousInterval.max + 2 * containerToInterval(HANDLE_WIDTH)
-          : domain.min
-      );
+      let newIntervalMin = currentInterval.min;
+      let newIntervalMax = currentInterval.max;
 
-      const newIntervalMax = Math.min(
-        newInterval.max,
-        nextInterval
-          ? nextInterval.min - 2 * containerToInterval(HANDLE_WIDTH)
-          : domain.max
-      );
+      if (currentInterval.min === newInterval.min) {
+        // dragging right
 
+        newIntervalMax = Math.max(newIntervalMin, Math.min(newInterval.max, nextInterval ? nextInterval.min : domain.max))
+      } else {
+        // dragging left
+
+        newIntervalMin = Math.min(newIntervalMax, Math.max(newInterval.min, previousInterval ? previousInterval.max : domain.min))
+      }
+      
       const newIntervalBounded: Interval = {
         min: newIntervalMin,
         max: newIntervalMax,
@@ -101,27 +101,6 @@ function MultiInterval(props: Props) {
     }
   };
 
-  function getBackgroundImageForIntervals(intervals: Interval[]): string {
-    if (intervals.length === 0) {
-      return UNSELECTED_COLOR;
-    }
-
-    return (
-      intervals.reduce(
-        (acc, interval) =>
-          acc +
-          `,${UNSELECTED_COLOR} ${intervalToContainer(
-            interval.min
-          )}px, ${SELECTED_COLOR} ${intervalToContainer(
-            interval.min
-          )}px ${intervalToContainer(
-            interval.max
-          )}px, ${UNSELECTED_COLOR} ${intervalToContainer(interval.max)}px`,
-        "linear-gradient(to right "
-      ) + ")"
-    );
-  }
-
   function onDelete(interval: Interval) {
     return () => {
       const newIntervals = intervals.filter((i) => i !== interval);
@@ -131,7 +110,6 @@ function MultiInterval(props: Props) {
   }
 
   const style = {
-    background: getBackgroundImageForIntervals(intervals),
     width: `${container.width}px`,
     height: `${container.height}px`,
   };

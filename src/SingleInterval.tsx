@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import type { Interval } from "./types";
 
-const HANDLE_WIDTH = 20;
 
 interface Props {
   containerRef: React.MutableRefObject<HTMLDivElement | null>;
@@ -49,33 +48,31 @@ function SingleInterval(props: Props) {
         const mousePos = ev.clientX;
         const containerMin = containerBox.x;
 
-        const minInPx = mousePos - containerMin + HANDLE_WIDTH / 2;
+        const minInPx = mousePos - containerMin;
         const minInInterval = containerToInterval(minInPx);
 
-        if (minInInterval < max) {
-          onChange({ min: minInInterval, max });
-        }
+        onChange({ min: minInInterval, max });
       } else if (rightMoving) {
         const containerBox = containerRef.current?.getBoundingClientRect();
 
         const mousePos = ev.clientX;
         const containerMin = containerBox.x;
 
-        const maxInPx = mousePos - containerMin - HANDLE_WIDTH / 2;
+        const maxInPx = mousePos - containerMin;
         const maxInInterval = containerToInterval(maxInPx);
 
-        if (min < maxInInterval) {
-          onChange({ min, max: maxInInterval });
-        }
+        onChange({ min, max: maxInInterval });
       }
     };
 
+    console.log('change!')
     window.addEventListener("mousemove", handleMouseMove);
 
     return () => {
+      console.log('clean!')
       window.removeEventListener("mousemove", handleMouseMove);
     };
-  }, [leftMoving, rightMoving]);
+  }, [leftMoving, rightMoving, min, max, containerRef, containerToInterval, onChange]);
 
   function onLeftHandleMouseDown() {
     setLeftMoving(true);
@@ -89,41 +86,20 @@ function SingleInterval(props: Props) {
   const pixelsRight = intervalToContainer(max);
 
   return (
-    <>
-      <div
-        style={{
-          position: "absolute",
-          left: `${pixelsLeft - HANDLE_WIDTH}px`,
-          width: `${HANDLE_WIDTH}px`,
-        }}
-        className="left-handle"
-        onMouseDown={onLeftHandleMouseDown}
-      >
+    <div
+      className="single-interval"
+      style={{ left: pixelsLeft, width: pixelsRight - pixelsLeft }}
+    >
+      <div className="left-handle" onMouseDown={onLeftHandleMouseDown}>
         <span className="value">{Number(interval.min).toFixed(1)}</span>
       </div>
-      <div
-        style={{
-          position: "absolute",
-          left: `${pixelsRight}px`,
-          width: `${HANDLE_WIDTH}px`,
-        }}
-        className="right-handle"
-        onMouseDown={onRightHandleMouseDown}
-      >
+      <div className="right-handle" onMouseDown={onRightHandleMouseDown}>
         <span className="value">{Number(interval.max).toFixed(1)}</span>
       </div>
-      <button
-        type="button"
-        style={{
-          position: "absolute",
-          left: `${pixelsRight + HANDLE_WIDTH}px`,
-          top: `-${HANDLE_WIDTH}px`,
-        }}
-        onClick={onDelete}
-      >
+      <button type="button" className="delete-button" onClick={onDelete}>
         X
       </button>
-    </>
+    </div>
   );
 }
 

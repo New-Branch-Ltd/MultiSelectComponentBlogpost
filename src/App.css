@@ -3,24 +3,50 @@
   text-align: center;
   padding-top: 32px;
   padding-left: 32px;
+  --handle-width: 20px;
 }
 
 .container {
   display: flex;
   position: relative;
+  background-color: #FCF9BE;
+}
+
+.single-interval {
+  position: absolute;
+  height: 100%;
+  display: flex;
+  justify-content: space-between;
+  background-color: #FFDCA9;
 }
 
 .left-handle,
 .right-handle {
+  width: var(--handle-width);
   height: 100%;
-  background: rgba(250, 171, 120, 0.8);
+  position: absolute;
+  background: rgba(250, 171, 120);
+}
+
+.left-handle {
+  left: calc(-1 * var(--handle-width) / 2);
+}
+
+.right-handle {
+  left: calc(100% - (var(--handle-width) / 2));
 }
 
 .left-handle:hover,
 .right-handle:hover {
   cursor: pointer;
-  background: rgb(250, 171, 120);
+  background: rgb(220, 141, 90);
   user-select: none;
+}
+
+.delete-button {
+  position: absolute;
+  left: 100%;
+  top: -20px;
 }
 
 .value {
