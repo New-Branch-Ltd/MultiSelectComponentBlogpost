@@ -47,15 +47,20 @@ interface Props {
   domain: Interval;
   width: number;
   height: number;
-  value: Interval[];
+  initialValue: Interval[];
   onChange: (newValue: Interval[]) => void;
 }
 
 // TODO Controlled vs Uncontrolled component asside?
+
+/// Aside
+In general each input can be either controlled or uncontrolled. Controlled in short means that its value is controlled with props and its updated are handled by the container component that is rendering it. Uncontrolled on the other hand means that the container may provide `initialValue`, but doesn't control the actual value of the input. It is handled internally. In our case we are going to create an uncontrolled input, because many of the logic related to a `MultiIntervalSelect` component is in fact state manipulation logic. 
+
+///
 // TODO Which one should we use?
 
 function MultiIntervalSelect(props: Props) {
-  return <div>TODO</div>;
+  return <div className="container">TODO</div>;
 }
 ```
 
@@ -72,74 +77,125 @@ start with the following boilerplate
 ```tsx
 // SingleInterval.tsx
 interface Props {
-  ? width: number;
+  offsetLeft: number;
+  width: number;
   interval: Interval;
   onDelete: () => void;
-  ? onLeftHandle: () => void;
-  ? onRightHandleGrab: () => void;
+  onLeftDown: () => void;
+  onRightDown: () => void;
 }
 
 // TODO Should we add a middle handle? What are the benefits
 // TODO Should we add a contianer instead of a middle handle?
 // TODO Add the delete button
+// TODO Do we count the handles
 
-// TODO Can we implement the component, without relying on specific css/visual properties, e.g. Handle widht?
+// TODO Can we implement the component, without relying on specific css/visual properties, e.g. Handle width?
 
 function SingleInterval() {
   return (
-    <>
+    <div className="single-interval">
       <div className="left-handle" />
       <div className="right-handle" />
-    </>
+    </div>
   );
 }
 ```
 
+There is an important question that we haven't discussed yet. Do we count the handles? Are the handles part of the interval? This is a good question. The answer may vary depending on your particular needs. What makes the most sense in my opinion is that we should position the handles right at the edges of the interval, so half of a handle will be in the interval, the other half outside. 
+
+Next I will add css to position the handles on the left and right side of the interval and offset them by half of `--handle-width`.
+
 ```css
-/* SingleInterval.css */
+/* MultiIntervalSelect.css */
 .container {
-    display: flex;
-    position: relative;
+  display: flex;
+  position: relative;
+  background-color: #FCF9BE;
+  --handle-width: 20px;
+}
+
+.single-interval {
+  position: absolute;
+  height: 100%;
+  display: flex;
+  justify-content: space-between;
+  background-color: #FFDCA9;
 }
 
 .left-handle,
 .right-handle {
-    height: 100%;
-    background: rgba(250, 171, 120, 0.8);
+  width: var(--handle-width);
+  height: 100%;
+  position: absolute;
+  background: rgba(250, 171, 120);
+  user-select: none;
+}
+
+.left-handle {
+  left: calc(-1 * var(--handle-width) / 2);
+}
+
+.right-handle {
+  left: calc(100% - (var(--handle-width) / 2));
 }
 
 .left-handle:hover,
 .right-handle:hover {
-    cursor: pointer;
-    background: rgb(250, 171, 120);
+  cursor: pointer;
+  background: rgb(220, 141, 90);
 }
+
 ```
 
 Then the main component will create a container with the specified dimensions,
-and render a `SingleInterval` component for each interval.
+and render a `SingleInterval` component for each interval. I will also pass the exact position that the interval should be rendered to and the width of the interval. Another option is to pass a tranformation function to be used in the `SingleInterval` component. I went with the first one in order to keep the lower level component as simple as possible. This is generally a good principle to follow.
 
 ```tsx
 // MultiIntervalSelect.tsx
 function MultiIntervalSelect(props: Props) {
+  const { initialValue, width, height, domain, onChange } = props;
+
+  const [intervals, setIntervals] = useState<Interval[]>(initialValue);
+  
+  const intervalToContainer = domainValueToContainerPosition(
+    width,
+    domain
+  );
+
   const style = {
-    background: UNSELECTED_COLOR,
-    width: container.width,
-    height: container.height,
+    width,
+    height,
   };
 
   return (
     <div className="container" style={style}>
-      {props.value.map((i, ind) => (
-        <SingleInterval
-          key={ind} // `min-max` key ?
-          interval={i}
-          intervalToContainer={intervalToContainer}
-        />
+      {intervals.map((i, ind) => {
+        const pixelsLeft = intervalToContainer(i.min)
+        const pixelsRight = intervalToContainer(i.max)
+
+        return (
+          <SingleInterval
+            key={ind}
+            interval={i}
+            width={pixelsRight - pixelsLeft}
+            offsetLeft={pixelsLeft}
+            onLeftDown={TODO}
+            onRightDown={TODO}
+            onDelete={TODO}
+          />
+        )}
       ))}
     </div>
   );
 }
 ```
+
+
+// Aside
+In the implementation you might have noticed that I am passing index as key. This is generally bad, especially if you have a reorder functionality. In our case we don't have a better option, because it will be possible to have intervals that start from the exact same position and end in the same position. Note that this doesn't really make sense in practice so if we were to disable that we could use min/max as key, which would be better. For the sake of simplicity I am using index here as key. It shouldn't brake any of our functionality becase we will not reorder the intervals in out state.
+
+// Aside
 
 ## Implementing create interaction
 
@@ -150,16 +206,15 @@ function MultiIntervalSelect(props: Props) {
 
 
 #### Transforming values
-Now lets set up a utility function to transform value from the interval to 
-pixel position in the container. It will look something like this.
+For further development we will need to set up some utility functions to transform value from the interval domain to pixel position in the container and vice versa. I will use highter order functions for that and pass the higher order function called with the domain dimensions and `containerWidth`. I am doing this because I don't think there is a reason to pass unnecessary data to the lower level `SingleInterval` component. It will look something like this.
 
 ```ts
   export function intervalValueToContainerPosition(
     containerWidth: number,
-    interval: Interval
+    domain: Interval
   ) {
     return (intervalValue: number) =>
-      (intervalValue * containerWidth) / (interval.max - interval.min);
+      (intervalValue * containerWidth) / (domain.max - domain.min);
   }
 ```
 
@@ -179,24 +234,13 @@ We can then use it in `SingleInterval.tsx` like so:
     const pixelsRight = intervalToContainer(max);
     
     return (
-      <>
-        <div
-          style={{
-            position: "absolute",
-            left: `${pixelsLeft - HANDLE_WIDTH}px`,
-            width: `${HANDLE_WIDTH}px`
-          }}
-          className="left-handle"
-        />
-        <div
-          style={{
-            position: "absolute",
-            left: `${pixelsRight}px`,
-            width: `${HANDLE_WIDTH}px`
-          }}
-          className="right-handle"
-        />
-      </>
+      <div
+        className="single-interval"
+        style={{ left: pixelsLeft, width: pixelsRight - pixelsLeft }}
+      >
+        <div className="left-handle" />
+        <div className="right-handle" />
+      </div>
     );
   }
 ```
