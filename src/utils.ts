@@ -1,17 +1,17 @@
 import type { Interval } from "./types";
 
-export function intervalValueToContainerPosition(
+export function domainValueToContainerPosition(
   containerWidth: number,
-  interval: Interval
+  domain: Interval
 ) {
   return (intervalValue: number) =>
-    (intervalValue * containerWidth) / (interval.max - interval.min);
+    (intervalValue * containerWidth) / (domain.max - domain.min);
 }
 
-export function containerPositionToIntervalValue(
+export function containerPositionToDomainValue(
   containerWidth: number,
-  interval: Interval
+  domain: Interval
 ) {
   return (containerPosition: number) =>
-    (containerPosition * (interval.max - interval.min)) / containerWidth;
+    (containerPosition * (domain.max - domain.min)) / containerWidth;
 }

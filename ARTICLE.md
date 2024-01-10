@@ -1,13 +1,14 @@
-# Revolutionizing User Interaction: Unveiling the Power of a Multi-Interval Selector Component
+# Multi-Interval Selector Component
 
 ## Introduction
+
 In the ever-evolving landscape of user interface design, crafting intuitive and efficient components is important to delivering a good user experience.
 
 In this article, we delve into the basics of developing this kind of component using React and exploring its capabilities. Some of the use cases are: Selecting parts of audio recording to be edited by audio manipulation software, selecting parts of a video to be cut or more generally selecting multiple intervals of some data to operate on.
 
 Current implementation is going to be rather simple. We will have a container where we render the multi-interval selector. We will have the ability to create a new interval by double clicking on an empty space. We will also have an `X` button to delete an interval. Each interval will have handles to hold and drag. We will also add some logic for collission detection so that the intervals don't overlap. The final component will look something like this.
 
-![multi-interval](/public/after-remove.png)
+<!-- TODO Insert code sandbox -->
 
 ## Defining the component's interface
 
@@ -23,7 +24,7 @@ interface Interval {
 ```
 
 Our custom component will be called `MultiIntervalSelect`. As any other component
-that gets input from the user, it needs to have a property for the currently
+that gets input from the user, it needs to have a property for the initial
 selected value and a handler, that will be invoked whenever the user
 changes the selection.
 
@@ -51,38 +52,29 @@ interface Props {
   onChange: (newValue: Interval[]) => void;
 }
 
-// TODO Controlled vs Uncontrolled component asside?
-
-/// Aside
-In general each input can be either controlled or uncontrolled. Controlled in short means that its value is controlled with props and its updated are handled by the container component that is rendering it. Uncontrolled on the other hand means that the container may provide `initialValue`, but doesn't control the actual value of the input. It is handled internally. In our case we are going to create an uncontrolled input, because many of the logic related to a `MultiIntervalSelect` component is in fact state manipulation logic. 
-
-///
-// TODO Which one should we use?
-
 function MultiIntervalSelect(props: Props) {
   return <div className="container">TODO</div>;
 }
 ```
 
+<!-- Aside -->
+In general each input can be either controlled or uncontrolled. Controlled in short means that its value is controlled with props and its updates are handled by the container component that is rendering it. Uncontrolled on the other hand means that the container may provide `initialValue`, but doesn't control the actual value of the input. It is handled internally. In our case we are going to create an uncontrolled input, because many of the logic related to a `MultiIntervalSelect` component is in fact state manipulation logic. 
+<!-- /ASIDE -->
+
 ## Rendering selected intervals on the screen
 
 The next step is to render the selected intervals on the screen. For each
 interval, we will create a left and a right handle, that will later be used to
-resize the interval by dragging them. We also need a button for deleting the
-interval.
+resize the interval by dragging them. Those handles will be rendered inside a container
+div and will be positioned on the left and right side of that container. We will need to pass a pixels offset, where this interval is rendered and width in pixels for the interval. I will note that there are possible apis for this kind of component. We could pass the interval itself with domain values and transformation function to calculate the pixels pased on those values. I think it is better to keep this `SingleInterval` component as simple as possible. This is generally a good principle to follow.
 
-We will use a helper component for rendering a single interval, and we can
-start with the following boilerplate
+We will use a helper component for rendering a single interval, and we can start with the following boilerplate:
 
 ```tsx
 // SingleInterval.tsx
 interface Props {
   offsetLeft: number;
   width: number;
-  interval: Interval;
-  onDelete: () => void;
-  onLeftDown: () => void;
-  onRightDown: () => void;
 }
 
 // TODO Should we add a middle handle? What are the benefits
@@ -104,7 +96,7 @@ function SingleInterval(props: Props) {
 }
 ```
 
-There is an important question that we haven't discussed yet. Are the handles part of the interval? This is a good question. The answer may vary depending on your particular needs. What makes the most sense in my opinion is that we should position the handles right at the edges of the interval, so half of a handle will be in the interval, the other half outside. 
+There is an important question that we haven't discussed yet. Are the handles part of the interval? The answer may vary depending on your particular needs. What makes the most sense in my opinion is that we should position the handles right at the edges of the interval, so half of a handle will be in the interval, the other half outside. 
 
 Next I will add css to position the handles on the left and right side of the interval and offset them by half of `--handle-width`.
 
@@ -151,7 +143,32 @@ Next I will add css to position the handles on the left and right side of the in
 ```
 
 Then the main component will create a container with the specified dimensions,
-and render a `SingleInterval` component for each interval. I will also pass the exact position that the interval should be rendered to and the width of the interval. Another option is to pass a tranformation function to be used in the `SingleInterval` component. I went with the first one in order to keep the lower level component as simple as possible. This is generally a good principle to follow.
+and render a `SingleInterval` component for each interval. I will also pass the exact position that the interval should be rendered to and the width of the interval. To calculate the exact position we will need a transformation function to go from one range to the other. Transformation function implementation will look something like this:
+
+```ts
+  export function domainValueToContainerPosition(
+    containerWidth: number,
+    domain: Interval
+  ) {
+    return (intervalValue: number) =>
+      (intervalValue * containerWidth) / (domain.max - domain.min);
+  }
+```
+
+In the future we will need also a transformation function to transform container pixels position to a domain value so I might as well show you implementation for that now:
+
+```ts
+  export function containerPositionToDomainValue(
+    containerWidth: number,
+    domain: Interval
+  ) {
+    return (containerPosition: number) =>
+      (containerPosition * (domain.max - domain.min)) / containerWidth;
+  }
+```
+
+Both functions are higher order functions. I did that just to improve usability. We call them once with the `containerWidth` and `domain` and then we can easily use the returned function many times. These kind of functional programming ideas can sometimes be used in React and JavaScript in general to reduce quantity of code and improve readability.
+
 
 ```tsx
 // MultiIntervalSelect.tsx
@@ -172,19 +189,15 @@ function MultiIntervalSelect(props: Props) {
 
   return (
     <div className="container" style={style}>
-      {intervals.map((i, ind) => {
+      {intervals.map((i, index) => {
         const pixelsLeft = intervalToContainer(i.min)
         const pixelsRight = intervalToContainer(i.max)
 
         return (
           <SingleInterval
-            key={ind}
-            interval={i}
+            key={index}
             width={pixelsRight - pixelsLeft}
             offsetLeft={pixelsLeft}
-            onLeftDown={TODO}
-            onRightDown={TODO}
-            onDelete={TODO}
           />
         )}
       ))}
@@ -200,11 +213,18 @@ In the implementation you might have noticed that I am passing index as key. Thi
 // Aside
 
 ## Implementing create interaction
-So let's start by implementing the creation of intervals. The idea is realtively straight-forward. When a user double clicks anywhere on the interval that is not in an already existing interval, we will create an interval with length 0 at the mouse position. This is not a particularly good interaction for mobile or in terms of accessibility, but it is the easiest to implement and I don't really have a better idea for interval creation.
+So let's start by implementing the creation of intervals. The idea is realtively straight-forward. When a user double clicks anywhere on the interval that is not in an already existing interval, we will create an interval with length 0 at the mouse position. This is not a particularly good interaction for mobile or in terms of accessibility, but it is the easiest to implement and I don't really have a better idea for interval creation interaction. In the implementation we will need to fu
 
 ```tsx
-  
+  // MultiIntervalSelect.tsx
+
+  // ...
   const containerRef = useRef<HTMLDivElement | null>(null);
+
+  const intervalToContainer = domainValueToContainerPosition(
+    width,
+    domain
+  )
 
   const containerToInterval = containerPositionToDomainValue(
     width,
@@ -265,8 +285,6 @@ So let's start by implementing the creation of intervals. The idea is realtively
 ```
 
 A few things in the code that I haven't explained already. First you might have seen that we have a ref of the container of all intervals. We use and need that ref to calculate the pixels offset of the container on the page. There is also a possibility to get that element with the DOM Api, but this is not the recommended way on React.
-
-Another thing you might have noticed is that we now have a new tranformation function `containerPositionToDomainValue` that transforms pixel value to a domain interval value. It is analogous to the other one. Here is its implementation. With this we have the ability two create intervals with double click.
 
 You also might have noticed that I have sorted all intervals with the lodash `sortBy` function. This is rather important to make our job easier for the future. (especially when we start thinking about handling collision between intervals)
 
@@ -442,8 +460,8 @@ One more thing I want to add are the actual values of the interval right under t
   }
 ```
 
-## Remove interval
-Next we will do the remove interval functionality. I will add a delete button and position it absolutely with css at the top right of the interval. Here is how `SingleInterval.tsx` component will change.
+## Delete interval
+Next we will do the remove interval functionality. I will add a delete button and position it absolutely with css at the top right of the interval. Here is how `SingleInterval.tsx` component will change. A possible improvement here would be to pass a delete button as a prop to the `MultiIntervalSelect.tsx` and by that to allow the user to customize the functionality.
 
 ```tsx
   function SingleInterval(props: Props) {
@@ -900,7 +918,7 @@ Our last task is to hook remove interval functionality. We can do that by adding
 
 With this we have a functional implementation following the specification. 🎉🎉🎉
 
-![multi-interval](/public/after-remove.png)
+<!-- TODO Code Sandbox embed here -->
 
 ## Further Improvements
 - Testing: When it comes to testing, I'd recommend testing it via e2e testing library like cypress or playwright. It will be the easiest in my opinion. 
@@ -911,5 +929,4 @@ With this we have a functional implementation following the specification. 🎉�
 You can check all of the source code in [GitLab](https://gitlab.com/new-branch-ltd/multi-range-selector-blogpost)
 
 
-<!-- TODO CodeSandbox embed. Also maybe embed at the beginning -->
 You can view a working example in [CodeSandbox](https://codesandbox.io/p/sandbox/multi-interval-vjs8kw?file=%2Fsrc%2FMultiInterval.tsx%3A112%2C50)

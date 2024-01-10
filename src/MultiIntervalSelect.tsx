@@ -3,8 +3,8 @@ import { sortBy } from "lodash";
 import type { Interval } from "./types";
 import SingleInterval from "./SingleInterval";
 import {
-  intervalValueToContainerPosition,
-  containerPositionToIntervalValue,
+  domainValueToContainerPosition,
+  containerPositionToDomainValue,
 } from "./utils";
 
 interface Props {
@@ -37,11 +37,11 @@ function MultiIntervalSelect(props: Props) {
     };
   }, []);
 
-  const intervalToContainer = intervalValueToContainerPosition(
+  const intervalToContainer = domainValueToContainerPosition(
     width,
     domain
   );
-  const containerToInterval = useMemo(() => containerPositionToIntervalValue(
+  const containerToInterval = useMemo(() => containerPositionToDomainValue(
     width,
     domain
   ), [width, domain])
@@ -110,7 +110,7 @@ function MultiIntervalSelect(props: Props) {
 
     const mousePos = ev.clientX;
     const mousePosInPx = mousePos - containerBox?.x;
-    const containerToInterval = containerPositionToIntervalValue(
+    const containerToInterval = containerPositionToDomainValue(
       width,
       domain
     );  
