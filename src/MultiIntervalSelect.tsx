@@ -1,4 +1,4 @@
-import React, { useState, useRef, MouseEventHandler, useEffect } from "react";
+import React, { useState, useRef, MouseEventHandler, useEffect, useMemo } from "react";
 import { sortBy } from "lodash";
 import type { Interval } from "./types";
 import SingleInterval from "./SingleInterval";
@@ -41,6 +41,10 @@ function MultiIntervalSelect(props: Props) {
     width,
     domain
   );
+  const containerToInterval = useMemo(() => containerPositionToIntervalValue(
+    width,
+    domain
+  ), [width, domain])
 
   useEffect(() => {
     const handleMouseMove = (ev: MouseEvent) => {
@@ -59,7 +63,6 @@ function MultiIntervalSelect(props: Props) {
       const mousePos = ev.clientX;
       const containerMin = containerBox.x;
       const positionInPx = mousePos - containerMin;
-      const containerToInterval = containerPositionToIntervalValue(width, domain);
       const positionInInterval = containerToInterval(positionInPx);
       let newInterval: Interval = relevantInterval!;
 
@@ -96,7 +99,7 @@ function MultiIntervalSelect(props: Props) {
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
     };
-  }, [movingHandle, intervals, containerRef, onChange, width, height, domain]);
+  }, [movingHandle, intervals, containerRef, onChange, containerToInterval, domain]);
 
   const handleDoubleClick: MouseEventHandler<HTMLDivElement> = (ev) => {
     if (!containerRef.current) return;
@@ -147,16 +150,21 @@ function MultiIntervalSelect(props: Props) {
       ref={containerRef}
       onDoubleClick={handleDoubleClick}
     >
-      {intervals.map((i, ind) => (
-        <SingleInterval
-          key={ind}
-          interval={i}
-          intervalToContainer={intervalToContainer}
-          onLeftDown={() => setMovingHandle(`${ind}-left`)}
-          onRightDown={() => setMovingHandle(`${ind}-right`)}
-          onDelete={onDelete(i)}
-        />
-      ))}
+      {intervals.map((i, ind) => {
+        const pixelsLeft = intervalToContainer(i.min)
+        const pixelsRight = intervalToContainer(i.max)
+
+        return (
+          <SingleInterval
+            offsetLeft={pixelsLeft}
+            width={pixelsRight - pixelsLeft}
+            key={ind}
+            interval={i}
+            onLeftDown={() => setMovingHandle(`${ind}-left`)}
+            onRightDown={() => setMovingHandle(`${ind}-right`)}
+            onDelete={onDelete(i)}
+          />
+       )})}
     </div>
   );
 }

@@ -92,9 +92,11 @@ interface Props {
 
 // TODO Can we implement the component, without relying on specific css/visual properties, e.g. Handle width?
 
-function SingleInterval() {
+function SingleInterval(props: Props) {
+  const {offsetLeft, width} = props;
+
   return (
-    <div className="single-interval">
+    <div className="single-interval" style={{left: offsetLeft, width}}>
       <div className="left-handle" />
       <div className="right-handle" />
     </div>
@@ -102,7 +104,7 @@ function SingleInterval() {
 }
 ```
 
-There is an important question that we haven't discussed yet. Do we count the handles? Are the handles part of the interval? This is a good question. The answer may vary depending on your particular needs. What makes the most sense in my opinion is that we should position the handles right at the edges of the interval, so half of a handle will be in the interval, the other half outside. 
+There is an important question that we haven't discussed yet. Are the handles part of the interval? This is a good question. The answer may vary depending on your particular needs. What makes the most sense in my opinion is that we should position the handles right at the edges of the interval, so half of a handle will be in the interval, the other half outside. 
 
 Next I will add css to position the handles on the left and right side of the interval and offset them by half of `--handle-width`.
 
@@ -193,13 +195,232 @@ function MultiIntervalSelect(props: Props) {
 
 
 // Aside
-In the implementation you might have noticed that I am passing index as key. This is generally bad, especially if you have a reorder functionality. In our case we don't have a better option, because it will be possible to have intervals that start from the exact same position and end in the same position. Note that this doesn't really make sense in practice so if we were to disable that we could use min/max as key, which would be better. For the sake of simplicity I am using index here as key. It shouldn't brake any of our functionality becase we will not reorder the intervals in out state.
+In the implementation you might have noticed that I am passing index as key. This is generally bad, especially if you have a reorder functionality. In our case we don't have a better option, because it will be possible to have intervals that start from the exact same position and end in the same position. Note that this doesn't really make sense in practise so if we were to disable that we could use min/max as key, which would be better. For the sake of simplicity I am using index here as key. It shouldn't brake any of the functionality becase we will not reorder the intervals in out state.
 
 // Aside
 
 ## Implementing create interaction
+So let's start by implementing the creation of intervals. The idea is realtively straight-forward. When a user double clicks anywhere on the interval that is not in an already existing interval, we will create an interval with length 0 at the mouse position. This is not a particularly good interaction for mobile or in terms of accessibility, but it is the easiest to implement and I don't really have a better idea for interval creation.
+
+```tsx
+  
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  const containerToInterval = containerPositionToDomainValue(
+    width,
+    domain
+  );
+
+  const handleDoubleClick: MouseEventHandler<HTMLDivElement> = (ev) => {
+    if (!containerRef.current) return;
+
+    const containerBox = containerRef.current.getBoundingClientRect();
+
+    const mousePos = ev.clientX;
+    const mousePosInPx = mousePos - containerBox?.x;
+    const mousePosInIntervalValue = containerToInterval(mousePosInPx);
+
+    const isOutsideIntervals = intervals.every(
+      (i) => mousePosInIntervalValue < i.min || mousePosInIntervalValue > i.max
+    );
+
+    if (isOutsideIntervals) {
+      const newInterval = {
+        min: mousePosInIntervalValue,
+        max: mousePosInIntervalValue,
+      };
+
+      const newIntervals = sortBy([...intervals, newInterval], "min");
+      setIntervals(newIntervals);
+      props.onChange(newIntervals);
+    }
+  };
+
+  return (
+    <div 
+      className="container" 
+      style={style}       
+      ref={containerRef}
+      onDoubleClick={handleDoubleClick}
+    >
+      {intervals.map((i, ind) => {
+        const pixelsLeft = intervalToContainer(i.min)
+        const pixelsRight = intervalToContainer(i.max)
+
+        return (
+          <SingleInterval
+            key={ind}
+            interval={i}
+            width={pixelsRight - pixelsLeft}
+            offsetLeft={pixelsLeft}
+            onLeftDown={TODO}
+            onRightDown={TODO}
+            onDelete={TODO}
+          />
+        )}
+      ))}
+    </div>
+  );
+}
+```
+
+A few things in the code that I haven't explained already. First you might have seen that we have a ref of the container of all intervals. We use and need that ref to calculate the pixels offset of the container on the page. There is also a possibility to get that element with the DOM Api, but this is not the recommended way on React.
+
+Another thing you might have noticed is that we now have a new tranformation function `containerPositionToDomainValue` that transforms pixel value to a domain interval value. It is analogous to the other one. Here is its implementation. With this we have the ability two create intervals with double click.
+
+You also might have noticed that I have sorted all intervals with the lodash `sortBy` function. This is rather important to make our job easier for the future. (especially when we start thinking about handling collision between intervals)
 
 ## Resizing intervals
+Our next task will be a bit more complicate we need to hook up dragging logic for the handles.
+Here is the plan. We detect handle mouse grab (`mousedown` event). We save in the `MultiIntervalSelect` component which handle is dragged. We will also setup `mousemove` event, in which we check if we have handle that is dragged, we move it to the mouse position. On `mouseup` event we remove that the state that a handle is dragged. Now, one thing to keep in mind is that `mousemove` and `mouseup` events are actually set up on the window object. That is necessary because you can drag the mouse outside any other container and then release the mouse.
+
+Let's start by setting up the state and the `mousedown` interaction.
+
+```tsx
+  //MultiIntervalSelect.tsx
+  // ...
+  const [movingHandle, setMovingHandle] = useState<string | null>(null);
+
+
+  // ...
+    return (
+      <div
+        className="container"
+        style={style}
+        ref={containerRef}
+        onDoubleClick={handleDoubleClick}
+      >
+        {intervals.map((i, ind) => {
+          const pixelsLeft = intervalToContainer(i.min)
+          const pixelsRight = intervalToContainer(i.max)
+
+          return (
+            <SingleInterval
+              offsetLeft={pixelsLeft}
+              width={pixelsRight - pixelsLeft}
+              key={ind}
+              interval={i}
+              onLeftDown={() => setMovingHandle(`${ind}-left`)}
+              onRightDown={() => setMovingHandle(`${ind}-right`)}
+              onDelete={TODO}
+            />
+        )})}
+    </div>
+  );
+```
+
+```tsx
+// SingleInterval.tsx
+function SingleInterval(props: Props) {
+  const {
+    interval,
+    offsetLeft,
+    width,
+    onLeftDown, 
+    onRightDown,
+    onDelete,
+  } = props;
+
+  return (
+    <div
+      className="single-interval"
+      style={{ left: offsetLeft, width }}
+    >
+      <div className="left-handle" onMouseDown={onLeftDown} />
+      <div className="right-handle" onMouseDown={onRightDown}> /
+    </div>
+  );
+}
+```
+
+Next I will setup the `mouseup` event. I will set it up in React `useEffect` hook. Again the idea is to set up a listener on the window when the component is mounted and clean up the event listener when the component is unmounted. Here is the code for that:
+
+```tsx
+// MultiIntervalSelect.tsx
+
+// ...
+useEffect(() => {
+  function stopMoving() {
+    setMovingHandle(null);
+  }
+
+  window.addEventListener("mouseup", stopMoving);
+
+  return () => {
+    window.removeEventListener("mouseup", stopMoving);
+  };
+}, []);
+
+// ...
+```
+
+And lastly the `mousemove` interaction. I will also need to set it up in `useEffect`. One thing that I didn't mention already about the mousemove interaction is that we will also need to handle collision between intervals here. The logic for that will be simple: If we are dragging the left handle, it shouldn't go before the previous interval right handle and if we are dragging a right handle, it shouldn't go after the next interval's left handle. With that in mind here is the code:
+
+```tsx
+  useEffect(() => {
+    const handleMouseMove = (ev: MouseEvent) => {
+      if (!containerRef.current || !movingHandle) return;
+      const containerBox = containerRef.current?.getBoundingClientRect();
+
+      const [indexStr, side] = movingHandle.split("-");
+
+      const relevantIndex = Number(indexStr);
+      const relevantInterval = intervals.find(
+        (_i, ind) => ind === relevantIndex
+      );
+      const { min, max } = relevantInterval!;
+      const previousInterval = intervals[relevantIndex - 1];
+      const nextInterval = intervals[relevantIndex + 1];
+      
+      const mousePos = ev.clientX;
+      const containerMin = containerBox.x;
+      const positionInPx = mousePos - containerMin;
+      const positionInInterval = containerToInterval(positionInPx);
+      
+      let newInterval: Interval = relevantInterval!;
+
+      if (side === "left") {
+        const minInIntervalBounded = Math.min(
+          max,
+          Math.max(
+            positionInInterval,
+            previousInterval ? previousInterval.max : domain.min
+          )
+        );
+        newInterval = { min: minInIntervalBounded, max };
+      } else {
+        const maxInIntervalBounded = Math.max(
+          min,
+          Math.min(
+            positionInInterval,
+            nextInterval ? nextInterval.min : domain.max
+          )
+        );
+        newInterval = { min, max: maxInIntervalBounded };
+      }
+
+      const newIntervals = intervals.map((i, index) =>
+        index === relevantIndex ? newInterval : i
+      );
+
+      setIntervals(newIntervals);
+      onChange(newIntervals);
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+    };
+  }, [movingHandle, intervals, containerRef, onChange, containerToInterval, domain]);
+```
+
+
+
+
+
+
+
 
 
 

@@ -3,7 +3,8 @@ import type { Interval } from "./types";
 
 interface Props {
   interval: Interval;
-  intervalToContainer: (intervalValue: number) => number;
+  offsetLeft: number;
+  width: number;
   onLeftDown: () => void;
   onRightDown: () => void;
   onDelete: () => void;
@@ -12,20 +13,17 @@ interface Props {
 function SingleInterval(props: Props) {
   const {
     interval,
-    intervalToContainer,
+    offsetLeft,
+    width,
     onLeftDown, 
     onRightDown,
     onDelete,
   } = props;
-  const { min, max } = interval;
-
-  const pixelsLeft = intervalToContainer(min);
-  const pixelsRight = intervalToContainer(max);
 
   return (
     <div
       className="single-interval"
-      style={{ left: pixelsLeft, width: pixelsRight - pixelsLeft }}
+      style={{ left: offsetLeft, width }}
     >
       <div className="left-handle" onMouseDown={onLeftDown}>
         <span className="value">{Number(interval.min).toFixed(1)}</span>
