@@ -413,17 +413,111 @@ And lastly the `mousemove` interaction. I will also need to set it up in `useEff
       window.removeEventListener("mousemove", handleMouseMove);
     };
   }, [movingHandle, intervals, containerRef, onChange, containerToInterval, domain]);
+``` 
+
+One more thing I want to add are the actual values of the interval right under the handles. We can do that, easily like that:
+
+```tsx
+// SingleInterval.tsx
+<div
+  className="single-interval"
+  style={{ left: offsetLeft, width }}
+>
+  <div className="left-handle" onMouseDown={onLeftDown}>
+    <span className="value">{Number(interval.min).toFixed(1)}</span>
+  </div>
+  <div className="right-handle" onMouseDown={onRightDown}>
+    <span className="value">{Number(interval.max).toFixed(1)}</span>
+  </div>
+</div>
+```
+
+```css
+  /* MultiIntervalSelect.css */
+  ...
+  
+  .value {
+    position: relative;
+    top: 100%;
+  }
+```
+
+## Remove interval
+Next we will do the remove interval functionality. I will add a delete button and position it absolutely with css at the top right of the interval. Here is how `SingleInterval.tsx` component will change.
+
+```tsx
+  function SingleInterval(props: Props) {
+    const {
+      interval,
+      offsetLeft,
+      width,
+      onLeftDown, 
+      onRightDown,
+      onDelete,
+    } = props;
+
+    return (
+      <div
+        className="single-interval"
+        style={{ left: offsetLeft, width }}
+      >
+        <div className="left-handle" onMouseDown={onLeftDown}>
+          <span className="value">{Number(interval.min).toFixed(1)}</span>
+        </div>
+        <div className="right-handle" onMouseDown={onRightDown}>
+          <span className="value">{Number(interval.max).toFixed(1)}</span>
+        </div>
+        <button type="button" className="delete-button" onClick={onDelete}>
+          X
+        </button>
+      </div>
+    );
+  }
+```
+Here is how the actual delete logic will look in `MultiIntervalSelect.tsx`
+
+```tsx
+  // MultiIntervalSelect.tsx
+
+  // ...
+
+  function onDelete(interval: Interval) {
+    return () => {
+      const newIntervals = intervals.filter((i) => i !== interval);
+      setIntervals(newIntervals);
+      props.onChange(newIntervals);
+    };
+  }
+
+  return (
+    <div
+      className="container"
+      style={style}
+      ref={containerRef}
+      onDoubleClick={handleDoubleClick}
+    >
+      {intervals.map((i, ind) => {
+        const pixelsLeft = intervalToContainer(i.min)
+        const pixelsRight = intervalToContainer(i.max)
+
+        return (
+          <SingleInterval
+            offsetLeft={pixelsLeft}
+            width={pixelsRight - pixelsLeft}
+            key={ind}
+            interval={i}
+            onLeftDown={() => setMovingHandle(`${ind}-left`)}
+            onRightDown={() => setMovingHandle(`${ind}-right`)}
+            onDelete={onDelete(i)}
+          />
+       )})}
+    </div>
+  );
+
 ```
 
 
-
-
-
-
-
-
-
-
+<!-- 
 
 
 #### Transforming values
@@ -802,7 +896,7 @@ Our last task is to hook remove interval functionality. We can do that by adding
       props.onChange(newIntervals);
     };
   }
-```
+``` -->
 
 With this we have a functional implementation following the specification. 🎉🎉🎉
 
@@ -812,9 +906,10 @@ With this we have a functional implementation following the specification. 🎉�
 - Testing: When it comes to testing, I'd recommend testing it via e2e testing library like cypress or playwright. It will be the easiest in my opinion. 
 - Accessibility: Current implementation is NOT accessible. A few suggestions I have are to make sure that handles and remove buttons are targetable by tab. Maybe increase/decrease of interval with arrows can also be implemented. Also check the aria roles to make sure that screen readers understand properly what we have on screen. 
 - Mobile: This component is not particularly convienient for mobile users. The handles should be a little bigger to increase comfort and usability. Also events might be required to change `onDoubleClick` to `onDoubleTap` etc.
-- Background Image: In many cases you would want to render an image/graph behind the multi-interval selector. You can do that by positioning the image with `position: absolute` and using semi-transparent colors for the actual multi-interval selector.
-- Handles: You might have noticed that it is that the handles themselves are currently not included inside the intervals and it is not clear from our specification if we should include them. That makes it impossible to select two very close intervals(within handle width distance). In some specific cases this might be a problem. An alternative implementation where the handles have a width of 1px and there is a button right above them to drag could solve that. Of course the delete logic would also need to be reworked.
+- Background Image: In many cases you would want to render an image/graph behind the multi-interval selector. You can do that by positioning the image with `position: absolute` and using semi-transparent colors for the actual multi-interval selector intervals.
 
 You can check all of the source code in [GitLab](https://gitlab.com/new-branch-ltd/multi-range-selector-blogpost)
 
+
+<!-- TODO CodeSandbox embed. Also maybe embed at the beginning -->
 You can view a working example in [CodeSandbox](https://codesandbox.io/p/sandbox/multi-interval-vjs8kw?file=%2Fsrc%2FMultiInterval.tsx%3A112%2C50)

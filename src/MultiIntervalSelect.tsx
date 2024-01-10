@@ -52,18 +52,20 @@ function MultiIntervalSelect(props: Props) {
       const containerBox = containerRef.current?.getBoundingClientRect();
 
       const [indexStr, side] = movingHandle.split("-");
+
       const relevantIndex = Number(indexStr);
       const relevantInterval = intervals.find(
         (_i, ind) => ind === relevantIndex
       );
+      const { min, max } = relevantInterval!;
       const previousInterval = intervals[relevantIndex - 1];
       const nextInterval = intervals[relevantIndex + 1];
-      const { min, max } = relevantInterval!;
-
+      
       const mousePos = ev.clientX;
       const containerMin = containerBox.x;
       const positionInPx = mousePos - containerMin;
       const positionInInterval = containerToInterval(positionInPx);
+      
       let newInterval: Interval = relevantInterval!;
 
       if (side === "left") {
