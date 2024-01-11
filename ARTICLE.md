@@ -364,7 +364,7 @@ function SingleInterval(props: Props) {
 
   .delete-button {
     position: absolute;
-    left: 100%;
+    left: calc(100% + (var(--handle-width) /2));
     top: -20px;
     user-select: none;
   }
@@ -384,8 +384,11 @@ Let's start by setting up the state and the `mousedown` interaction.
 
 ```tsx
   //MultiIntervalSelect.tsx
+
+  type MovingHandle = `${number}-${'left' | 'right'}` | null;
+
   // ...
-  const [movingHandle, setMovingHandle] = useState<string | null>(null);
+  const [movingHandle, setMovingHandle] = useState<MovingHandle>(null);
 
 
   // ...
@@ -522,7 +525,7 @@ And lastly the `mousemove` interaction. I will also need to set it up in `useEff
 ``` 
 
 
-With this we have a functional implementation following the specification. 🎉🎉🎉
+With this we have a functional implementation following the specification. 
 
 <!-- TODO Code Sandbox embed here -->
 
@@ -533,10 +536,9 @@ With this we have a functional implementation following the specification. 🎉�
   
 - Background Image: In many cases you would want to render an image/graph behind the multi-interval selector. You can do that by positioning the image with `position: absolute` and using semi-transparent colors for the actual multi-interval selector intervals.
 
-- Generality: This component is pretty specific. If we want to make it even more reusable we could improve that by allowing the user to pass TextRenderer component, DeleteButton component and maybe even a HandleRenderer component via the renderProps pattern. 
+- Generality: This component is pretty specific. If we want to make it even more reusable we could improve that by allowing the user to pass TextRenderer component, DeleteButton component and maybe even a HandleRenderer component.
 
-<!-- ASIDE TODO Render props pattern ?? -->
-
+- More complicated interactions: There are ideas how this component might be upgraded to handle more complication interaction. For example we can allow dragging of the whole interval to left and right via the middle part. We could also automatically combine intervals when their handles are next to each other. Because in most real world cases two intervals `A-B` and `B-C` should be the same as one interval `A-C`. Another idea is to automatically delete intervals with the length of 0. In practise this kind of interval are pretty much useless. Of course implementing this kind of interaction would require a rework of the creation logic.
 
 You can check all of the source code in [GitLab](https://gitlab.com/new-branch-ltd/multi-range-selector-blogpost)
 

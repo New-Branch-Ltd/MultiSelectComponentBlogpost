@@ -7,6 +7,8 @@ import {
   containerPositionToDomainValue,
 } from "./utils";
 
+type MovingHandle = `${number}-${'left' | 'right'}` | null;
+
 interface Props {
   domain: {
     min: number;
@@ -22,7 +24,7 @@ function MultiIntervalSelect(props: Props) {
   const { initialValue, width, height, domain, onChange } = props;
 
   const [intervals, setIntervals] = useState<Interval[]>(initialValue);
-  const [movingHandle, setMovingHandle] = useState<string | null>(null);
+  const [movingHandle, setMovingHandle] = useState<MovingHandle>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
