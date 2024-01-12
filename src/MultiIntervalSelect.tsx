@@ -1,4 +1,10 @@
-import React, { useState, useRef, MouseEventHandler, useEffect, useMemo } from "react";
+import React, {
+  useState,
+  useRef,
+  MouseEventHandler,
+  useEffect,
+  useMemo,
+} from "react";
 import { sortBy } from "lodash";
 import type { Interval } from "./types";
 import SingleInterval from "./SingleInterval";
@@ -7,7 +13,7 @@ import {
   containerPositionToDomainValue,
 } from "./utils";
 
-type MovingHandle = `${number}-${'left' | 'right'}` | null;
+type MovingHandle = `${number}-${"left" | "right"}` | null;
 
 interface Props {
   domain: {
@@ -39,14 +45,11 @@ function MultiIntervalSelect(props: Props) {
     };
   }, []);
 
-  const intervalToContainer = domainValueToContainerPosition(
-    width,
-    domain
+  const intervalToContainer = domainValueToContainerPosition(width, domain);
+  const containerToInterval = useMemo(
+    () => containerPositionToDomainValue(width, domain),
+    [width, domain]
   );
-  const containerToInterval = useMemo(() => containerPositionToDomainValue(
-    width,
-    domain
-  ), [width, domain])
 
   useEffect(() => {
     const handleMouseMove = (ev: MouseEvent) => {
@@ -62,12 +65,12 @@ function MultiIntervalSelect(props: Props) {
       const { min, max } = relevantInterval!;
       const previousInterval = intervals[relevantIndex - 1];
       const nextInterval = intervals[relevantIndex + 1];
-      
+
       const mousePos = ev.clientX;
       const containerMin = containerBox.x;
       const positionInPx = mousePos - containerMin;
       const positionInInterval = containerToInterval(positionInPx);
-      
+
       let newInterval: Interval = relevantInterval!;
 
       if (side === "left") {
@@ -103,7 +106,14 @@ function MultiIntervalSelect(props: Props) {
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
     };
-  }, [movingHandle, intervals, containerRef, onChange, containerToInterval, domain]);
+  }, [
+    movingHandle,
+    intervals,
+    containerRef,
+    onChange,
+    containerToInterval,
+    domain,
+  ]);
 
   const handleDoubleClick: MouseEventHandler<HTMLDivElement> = (ev) => {
     if (!containerRef.current) return;
@@ -112,10 +122,7 @@ function MultiIntervalSelect(props: Props) {
 
     const mousePos = ev.clientX;
     const mousePosInPx = mousePos - containerBox?.x;
-    const containerToInterval = containerPositionToDomainValue(
-      width,
-      domain
-    );  
+    const containerToInterval = containerPositionToDomainValue(width, domain);
     const mousePosInIntervalValue = containerToInterval(mousePosInPx);
 
     const isOutsideIntervals = intervals.every(
@@ -149,26 +156,49 @@ function MultiIntervalSelect(props: Props) {
 
   return (
     <div
-      className="container"
-      style={style}
-      ref={containerRef}
-      onDoubleClick={handleDoubleClick}
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "flex-start",
+        gap: '2rem'
+      }}
     >
-      {intervals.map((i, ind) => {
-        const pixelsLeft = intervalToContainer(i.min)
-        const pixelsRight = intervalToContainer(i.max)
+      <div
+        className="container"
+        style={style}
+        ref={containerRef}
+        onDoubleClick={handleDoubleClick}
+      >
+        {intervals.map((i, ind) => {
+          const pixelsLeft = intervalToContainer(i.min);
+          const pixelsRight = intervalToContainer(i.max);
 
-        return (
-          <SingleInterval
-            offsetLeft={pixelsLeft}
-            width={pixelsRight - pixelsLeft}
-            key={ind}
-            interval={i}
-            onLeftDown={() => setMovingHandle(`${ind}-left`)}
-            onRightDown={() => setMovingHandle(`${ind}-right`)}
-            onDelete={onDelete(i)}
-          />
-       )})}
+          return (
+            <SingleInterval
+              offsetLeft={pixelsLeft}
+              width={pixelsRight - pixelsLeft}
+              key={ind}
+              interval={i}
+              onLeftDown={() => setMovingHandle(`${ind}-left`)}
+              onRightDown={() => setMovingHandle(`${ind}-right`)}
+              onDelete={onDelete(i)}
+            />
+          );
+        })}
+      </div>
+      <div>
+        <p style={{textAlign: 'left', userSelect: 'none'}}>
+          Current Domain: <span>{domain.min}</span> - <span>{domain.max}</span>
+        </p>
+        <p style={{textAlign: 'left', userSelect: 'none'}}>
+          Current Intervals:
+          {intervals.map((i, index) => (
+            <span key={index} style={{marginRight: '1rem'}}>
+              {i.min} - {i.max}
+            </span>
+          ))}
+        </p>
+      </div>
     </div>
   );
 }

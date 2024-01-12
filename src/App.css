@@ -1,8 +1,8 @@
 .App {
   font-family: sans-serif;
   text-align: center;
-  padding-top: 32px;
-  padding-left: 32px;
+  padding-top: 320px;
+  padding-left: 320px;
   --handle-width: 20px;
 }
 
@@ -31,6 +31,18 @@
 
 .left-handle {
   left: calc(-1 * var(--handle-width) / 2);
+}
+
+.right-arrow, .left-arrow {
+  position: absolute;
+  left: 0px;
+  top: calc(50% - 34px / 2);
+  font-size: 24px;
+  width: var(--handle-width);
+}
+
+.left-arrow  {
+  position: absolute;
 }
 
 .right-handle {

@@ -27,9 +27,11 @@ function SingleInterval(props: Props) {
     >
       <div className="left-handle" onMouseDown={onLeftDown}>
         <span className="value">{Number(interval.min).toFixed(1)}</span>
+        <span className="right-arrow">&gt;</span>
       </div>
       <div className="right-handle" onMouseDown={onRightDown}>
         <span className="value">{Number(interval.max).toFixed(1)}</span>
+        <span className="left-arrow">&lt;</span>
       </div>
       <button type="button" className="delete-button" onClick={onDelete}>
         X
